@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link rel="shortcut icon" href="img/favicon.ico" />
+  <title>Wiener Linien Advertisement</title>
+
+  <!-- Calcite Bootstrap -->
+  <link rel="stylesheet" href="https://esri.github.io/calcite-maps/dist/css/calcite-bootstrap.min-v0.2.css">
+
+  <!-- Calcite Maps -->
+  <link rel="stylesheet" href="https://esri.github.io/calcite-maps/dist/css/calcite-maps-arcgis-4.x.min-v0.2.css">
+
+  <!-- ArcGIS JS 4.0 -->
+  <link rel="stylesheet" href="https://js.arcgis.com/4.5/esri/css/main.css">
+
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+	
+	/* The slider itself */
+	.slider {
+		-webkit-appearance: none;  /* Override default CSS styles */
+		appearance: none;
+		width: 100%; /* Full-width */
+		height: 15px; /* Specified height */
+		background: #d3d3d3; /* Grey background */
+		outline: none; /* Remove outline */
+		float: left;
+		margin-top: 5px;
+	}
+
+	/* Mouse-over effects */
+	.slider:hover {
+		opacity: 1; /* Fully shown on mouse-over */
+	}
+
+	/* The slider handle (use webkit (Chrome, Opera, Safari, Edge) and moz (Firefox) to override default look) */ 
+	.slider::-webkit-slider-thumb {
+		-webkit-appearance: none; /* Override default look */
+		appearance: none;
+		width: 15px; /* Set a specific slider handle width */
+		height: 25px; /* Slider handle height */
+		background: #db3333; /* Green background */
+		cursor: pointer; /* Cursor on hover */
+	}
+
+	.slider::-moz-range-thumb {
+		width: 15px; /* Set a specific slider handle width */
+		height: 25px; /* Slider handle height */
+		background: #db3333; /* Green background */
+		cursor: pointer; /* Cursor on hover */
+	}
+  </style>
+
+</head>
+
+<body class="calcite-maps calcite-nav-top">
+
+  <!-- Navbar -->
+
+  <nav class="navbar calcite-navbar navbar-fixed-top calcite-text-light calcite-bg-dark">
+    <!-- Menu -->
+    <div class="dropdown calcite-dropdown calcite-text-dark calcite-bg-light" role="presentation">
+      <a class="dropdown-toggle" role="button" aria-haspopup="true" aria-expanded="false">
+        <div class="calcite-dropdown-toggle">
+          <span class="sr-only">Toggle dropdown menu</span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </a>
+      <ul class="dropdown-menu">
+		<li><a role="button" data-target="#panelForm" aria-haspopup="true"><span class="glyphicon glyphicon-edit"></span> Map Query</a></li>
+        <li><a role="button" data-target="#panelBasemaps" aria-haspopup="true"><span class="glyphicon glyphicon-th-large"></span> Basemaps</a></li>
+      </ul>
+    </div>
+    <!-- Title -->
+    <div class="calcite-title calcite-overflow-hidden">
+      <span class="calcite-title-main"><img src="img/WL_logo_full.png" width="200" height="40" alt="Wiener Linien"></img> Advertisement</span>
+      <span class="calcite-title-divider hidden-xs"></span>
+      <span class="calcite-title-sub hidden-xs">Find the best location for your advertisement in the Wiener Linien network!</span>
+    </div>
+    <!-- Nav -->
+    <ul class="nav navbar-nav calcite-nav">
+      <li>
+        <div class="calcite-navbar-search calcite-search-expander">
+          <div id="searchWidgetDiv"></div>
+        </div>
+      </li>
+    </ul>
+  </nav>
+  <!--/.calcite-navbar -->
+
+  <!-- Map  -->
+
+  <div class="calcite-map calcite-map-absolute">
+    <div id="tabContainer" class="tab-content">
+      <div id="2dTab" class="tab-pane fade in active" role="tabpanel">
+        <div id="mapViewDiv"></div>
+      </div>
+    </div>
+  </div>
+  <!-- /.calcite-map -->
+
+  <!-- Panels -->
+
+  <div class="calcite-panels calcite-panels-right calcite-text-light calcite-bg-dark panel-group">
+
+    <!-- Panel Query Form -->
+	
+	<div id="panelForm" class="panel panel-map collapse in">
+      <div id="headingSettings" class="panel-heading">
+        <div class="panel-title">
+          <a class="panel-toggle" role="button" data-toggle="collapse" href="#collapseForm"
+            data-parent="#panelAccordion" aria-expanded="true" aria-controls="collapseForm"><span class="glyphicon glyphicon-edit" aria-hidden="true"></span><span class="panel-label">Map Query</span></a>
+          <a class="panel-close" role="button" data-toggle="collapse" data-target="#panelForm"><span class="esri-icon esri-icon-close" aria-hidden="true"></span></a>
+        </div>
+      </div>
+      <div id="collapseForm" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingForm">
+        <div class="panel-body" style="width: 500px;">
+          <div class="form-horizontal">
+		  
+			<!-- Industry Group -->
+
+            <div class="form-group">
+              <label for="formIndustryGroup" class="col-xs-3 control-label">Industry Group</label>
+              <div class="col-xs-9">
+                <select id="selectIndustryGroup" class="form-control"></select>
+              </div>
+            </div>
+			
+			<!-- Station Properties -->
+
+            <div class="form-group">
+              <label for="formIndustryGroup" class="col-xs-3 control-label">Station Properties</label>
+              <div class="col-xs-9">
+					<input type="checkbox" name="stationProperties" value="wifi" id="property1"><span style="padding-left:10px;">Wifi Available</span></br>
+					<input type="checkbox" name="stationProperties" value="handicap" id="property2"><span style="padding-left:10px;">Handicap Friendly</span></br>
+					<span>(If none selected, all stations are used for query)</span>
+				</ul>
+              </div>
+            </div>
+			
+			<!-- Query Range -->
+			
+			<div class="form-group">
+			  <label for="formQueryRange" class="col-xs-3 control-label">Isochrone Range</label>
+              <div class="col-xs-9" style="padding-top: 6px;">
+				<input type="range" min="1" max="15" value="1" class="slider" id="queryRange" style="width: 280px;">
+				<span id="queryRangeValue" style="padding-left:10px;"></span>
+			  </div>
+			</div>
+			
+			<!-- Start Search -->
+			
+			<div class="form-group">
+			  <label for="formStartSearch" class="col-xs-3 control-label"></label>
+			  <div class="col-xs-9">
+			    <input type="button" style="width: 342px;" class="btn" value="Search" id="startSearch">
+		      </div>
+			</div>
+			
+          </div>
+        </div>
+      </div>
+    </div>
+	
+	<!-- Basemaps Panel -->
+
+    <div id="panelBasemaps" class="panel collapse">
+      <div id="headingBasemaps" class="panel-heading" role="tab">
+        <div class="panel-title">
+          <a class="panel-toggle collapsed" role="button" data-toggle="collapse" href="#collapseBasemaps"
+            aria-expanded="false" aria-controls="collapseBasemaps"><span class="glyphicon glyphicon-th-large" aria-hidden="true"></span><span class="panel-label">Basemaps</span></a>
+          <a class="panel-close" role="button" data-toggle="collapse" data-target="#panelBasemaps"><span class="esri-icon esri-icon-close" aria-hidden="true"></span></a>
+        </div>
+      </div>
+      <div id="collapseBasemaps" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingBasemaps">
+        <div class="panel-body" style="width: 500px;">
+          <select id="selectBasemapPanel" class="form-control">
+			<option value="osm" data-vector="osm" selected="">Open Street Map</option>
+		    <option value="gray" data-vector="gray">Gray</option>
+            <option value="streets" data-vector="streets">Streets</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <!-- /.calcite-panels -->
+  
+  <script>
+    var slider = document.getElementById("queryRange");
+	var output = document.getElementById("queryRangeValue");
+	output.innerHTML = slider.value + " min"; // Display the default slider value
+
+	// Update the current slider value (each time you drag the slider handle)
+	slider.oninput = function() {
+		output.innerHTML = slider.value + " min";
+	}
+	
+	//var select = document.getElementById("selectIndustryGroup"); 
+	//var options = ["Test1", "Test2", "Test3", "Test4", "Test5"]; 
+
+	// Populate list with options:
+	//for(var i = 0; i < options.length; i++) {
+	//	var opt = options[i];
+	//	select.innerHTML += "<option value=\"" + opt + "\">" + opt + "</option>";
+	//}
+  </script>
+
+  <script type="text/javascript">
+    var dojoConfig = {
+      packages: [{
+        name: "bootstrap",
+        location: "https://esri.github.io/calcite-maps/dist/vendor/dojo-bootstrap"
+      },
+      {
+        name: "calcite-maps",
+        location: "https://esri.github.io/calcite-maps/dist/js/dojo"
+      }]
+    };
+  </script>
+
+  <!-- ArcGIS JS 4.0 -->
+  <script src="https://js.arcgis.com/4.5/"></script>
+
+  <script>
+    var app;
+
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+	  "esri/layers/FeatureLayer",
+      "esri/widgets/Search",
+      "esri/widgets/Popup",
+      "esri/core/watchUtils",
+      "dojo/query",
+      "dojo/on",
+	  "dojo/dom",
+      "dojo/dom-construct",
+
+      // Bootstrap
+      "bootstrap/Collapse",
+      "bootstrap/Dropdown",
+      "bootstrap/Tab",
+
+      // Calcite Maps
+      "calcite-maps/calcitemaps-v0.2",
+      "dojo/domReady!"
+    ], function(Map, MapView, FeatureLayer, Search, Popup, watchUtils, query,
+      on, dom, domConstruct) {
+
+      /******************************************************************
+       *
+       * App settings
+       * 
+       ******************************************************************/
+
+      app = {
+        center: [16.459493, 48.221086],
+        scale: 200000,
+        basemap: "osm",
+        viewPadding: {
+          top: 50,
+          bottom: 0
+        },
+        uiComponents: ["zoom", "compass", "attribution"],
+        dockOptions: {
+          position: "auto",
+          // Custom docking breakpoints
+          breakpoint: {
+            width: 768,
+            height: 768
+          }
+        },
+        mapView: null,
+        activeView: null,
+        searchWidget: null,
+        screenWidth: 0
+      };
+
+      /******************************************************************
+       *
+       * Create the map view and ui components
+       * 
+       ******************************************************************/
+
+      // Map
+      var map = new Map({
+        basemap: app.basemap
+      });
+      app.mapView = new MapView({
+        container: "mapViewDiv",
+        map: map,
+        center: app.center,
+        scale: app.scale,
+        padding: app.viewPadding,
+        popup: new Popup({
+          dockOptions: app.dockOptions
+        }),
+        ui: {
+          components: app.uiComponents
+        }
+      });
+
+      // Set the active view to scene
+      app.activeView = app.mapView;
+
+      // Create the search widget and add it to the navbar instead of view
+      app.searchWidget = new Search({
+        view: app.activeView
+      }, "searchWidgetDiv");
+	  
+	  /******************************************************************
+       *
+       * Load hosted FeatureLayers and add to map
+       * 
+       ******************************************************************/
+	  
+	  featureLayerURL = "https://services8.arcgis.com/2Urly7krb67hfb0I/arcgis/rest/services/superproject_neu/FeatureServer/"
+	  
+	  var stationLayer = new FeatureLayer(
+	  {
+		url: featureLayerURL + "0"
+	  });
+	  
+	  var networkLayer = new FeatureLayer(
+	  {
+		url: featureLayerURL + "1"
+	  });
+	  
+	  var heroldLayer = new FeatureLayer(
+	  {
+		url: featureLayerURL + "2",
+		visible: false
+	  });
+	  
+	  map.add(stationLayer);
+	  // map.add(networkLayer);
+	  map.add(heroldLayer);
+	  
+	  /******************************************************************
+       *
+       * Add industry groups from heroldLayer to form select
+       * 
+       ******************************************************************/
+	
+	  var industryGroupSelect = dom.byId("selectIndustryGroup");
+	
+	  app.mapView.then(function() {
+		return heroldLayer.then(function() {
+			var query = heroldLayer.createQuery();
+			return heroldLayer.queryFeatures(query);
+		});
+	  })
+	  .then(getValues)
+	  .then(getUniqueValues)
+	  .then(addToSelect);
+	  
+	  function getValues(response) {
+		var features = response.features;
+		var values = features.map(function(feature) {
+			return feature.attributes.industry_group;
+		});
+		return values;
+	  }
+	  
+	  function getUniqueValues(values) {
+		var uniqueValues = [];
+		
+		values.forEach(function(item, i) {
+			if ((uniqueValues.length < 1 || uniqueValues.indexOf(item) === -1) && (item !== "")) {
+				uniqueValues.push(item);
+			}
+		});
+		return uniqueValues;
+	  }
+	  
+	  function addToSelect(values) {
+		values.sort();
+		values.forEach(function(value) {
+			var option = domConstruct.create("option");
+			option.text = value;
+			industryGroupSelect.add(option);
+		});
+	  }
+		
+	  /******************************************************************
+       *
+       * Wire UI search event
+       * 
+       ******************************************************************/
+		
+	  on(dom.byId("startSearch"), "click", function() {
+
+		/*****************************************************************
+		 * TEST: Add the layer to a map
+		 *****************************************************************/
+		 
+		map.add(networkLayer);
+	  });
+
+      /******************************************************************
+       *
+       * Synchronize the view, search and popup
+       * 
+       ******************************************************************/
+
+      // Tab - toggle between map and scene view
+      query(".calcite-navbar li a[data-toggle='tab']").on("click", function(
+        e) {
+        syncTabs(e);
+        app.activeView = app.mapView;
+        syncSearch();
+      });
+
+      // Tabs - sync ui menus
+      function syncTabs(e) {
+        query(".calcite-navbar li.active").removeClass("active");
+        query(e.target).addClass("active");
+      }
+
+      // Search - sync search location and popup
+      function syncSearch() {
+        app.searchWidget.view = app.activeView;
+        if (app.searchWidget.selectedResult) {
+          app.searchWidget.search(app.searchWidget.selectedResult.name);
+          app.activeView.popup.reposition();
+        }
+      }
+
+      /******************************************************************
+       *
+       * Show and hide the panels and popup
+       * 
+       ******************************************************************/
+
+      // Views - Listen to view size changes to show/hide panels
+      app.mapView.watch("size", viewSizeChange);
+
+      function viewSizeChange(screenSize) {
+        if (app.screenWidth !== screenSize[0]) {
+          app.screenWidth = screenSize[0];
+          setPanelVisibility();
+        }
+      }
+
+      // Popups - Listen to popup changes to show/hide panels
+      app.mapView.popup.watch(["visible", "currentDockPosition"],
+        setPanelVisibility);
+
+      // Panels - Show/hide the panel when popup is docked
+      function setPanelVisibility() {
+        var isMobileScreen = app.activeView.widthBreakpoint === "xsmall" ||
+          app.activeView.widthBreakpoint ===
+          "small",
+          isDockedVisible = app.activeView.popup.visible && app.activeView.popup
+          .currentDockPosition,
+          isDockedBottom = app.activeView.popup.currentDockPosition && app.activeView
+          .popup.currentDockPosition
+          .indexOf("bottom") > -1,
+          isDockedTop = app.activeView.popup.currentDockPosition && app.activeView
+          .popup.currentDockPosition
+          .indexOf("top") > -1;
+        // Mobile (xsmall/small)
+        if (isMobileScreen) {
+          if (isDockedVisible && isDockedBottom) {
+            query(".calcite-panels").addClass("invisible");
+          } else {
+            query(".calcite-panels").removeClass("invisible");
+          }
+        } else { // Desktop (medium+)
+          if (isDockedVisible && isDockedTop) {
+            query(".calcite-panels").addClass("invisible");
+          } else {
+            query(".calcite-panels").removeClass("invisible");
+          }
+        }
+      }
+
+      // Panels - Dock popup when panels show (desktop or mobile)
+      query(".calcite-panels .panel").on("show.bs.collapse", function(e) {
+        if (app.activeView.popup.currentDockPosition || app.activeView.widthBreakpoint ===
+          "xsmall") {
+          app.activeView.popup.dockEnabled = false;
+        }
+      });
+
+      // Panels - Undock popup when panels hide (mobile only)
+      query(".calcite-panels .panel").on("hide.bs.collapse", function(e) {
+        if (app.activeView.widthBreakpoint === "xsmall") {
+          app.activeView.popup.dockEnabled = true;
+        }
+      });
+
+      // Popup
+      query(".esri-popup__header-title").on("click", function(e) {
+        query(".esri-popup__main-container").toggleClass(
+          "esri-popup-collapsed");
+        app.activeView.popup.reposition();
+      }.bind(this));
+
+      /******************************************************************
+       *
+       * Apply Calcite Maps CSS classes to change application on the fly
+       *
+       * For more information about the CSS styles or Sass build visit:
+       * http://github.com/esri/calcite-maps
+       * 
+       ******************************************************************/
+
+      // Basemap events
+      query("#selectBasemapPanel").on("change", function(e) {
+        app.mapView.map.basemap = e.target.options[e.target.selectedIndex]
+          .dataset.vector;
+      });
+
+    });
+  </script>
+
+</body>
+</html>
