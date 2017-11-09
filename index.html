@@ -205,15 +205,6 @@
 	slider.oninput = function() {
 		output.innerHTML = slider.value + " min";
 	}
-	
-	//var select = document.getElementById("selectIndustryGroup"); 
-	//var options = ["Test1", "Test2", "Test3", "Test4", "Test5"]; 
-
-	// Populate list with options:
-	//for(var i = 0; i < options.length; i++) {
-	//	var opt = options[i];
-	//	select.innerHTML += "<option value=\"" + opt + "\">" + opt + "</option>";
-	//}
   </script>
 
   <script type="text/javascript">
@@ -239,6 +230,9 @@
       "esri/Map",
       "esri/views/MapView",
 	  "esri/layers/FeatureLayer",
+      "esri/layers/GraphicsLayer",
+	  "esri/geometry/geometryEngine",
+      "esri/Graphic",
       "esri/widgets/Search",
       "esri/widgets/Popup",
       "esri/core/watchUtils",
@@ -255,7 +249,9 @@
       // Calcite Maps
       "calcite-maps/calcitemaps-v0.2",
       "dojo/domReady!"
-    ], function(Map, MapView, FeatureLayer, Search, Popup, watchUtils, query,
+    ], 
+	
+	function(Map, MapView, FeatureLayer, GraphicsLayer, geometryEngine, Graphic, Search, Popup, watchUtils, query,
       on, dom, domConstruct) {
 
       /******************************************************************
@@ -292,11 +288,47 @@
        * Create the map view and ui components
        * 
        ******************************************************************/
+	   
+	  // FeatureLayer hosting URL
+	  featureLayerURL = "https://services8.arcgis.com/2Urly7krb67hfb0I/arcgis/rest/services/superproject_neu/FeatureServer/"
+	  
+	  var stationPopupTemplate = { // autocasts as new PopupTemplate()
+        title: "Station: {HTXT}",
+        content: "<p>Properties:</p>" +
+          "<ul><li>Wifi Availability: {WIFI}</li>" +
+          "<li>Handicap Friendliness: {ELEVATOR}</li></ul>"
+      };
+	  
+	  // Metro stations of Wiener Linien
+	  var stationLayer = new FeatureLayer({
+		url: featureLayerURL + "0",
+		outFields: ["*"],
+		// add a custom action
+        popupTemplate: stationPopupTemplate
+	  });
+	  
+	  // Metro network of Wiener Linien
+	  var networkLayer = new FeatureLayer({
+		url: featureLayerURL + "1"
+	  });
+	  
+	  // Business in Vienna
+	  var heroldLayer = new FeatureLayer({
+		url: featureLayerURL + "2",
+		outFields: ["*"],
+		visible: false
+	  });
+	  
+	  // GraphicsLayer for displaying results
+	  var resultsLayer = new GraphicsLayer();
 
-      // Map
+      // Create Map
       var map = new Map({
-        basemap: app.basemap
+        basemap: app.basemap,
+		layers: [stationLayer, networkLayer, heroldLayer, resultsLayer]
       });
+	  
+	  // Create mapView
       app.mapView = new MapView({
         container: "mapViewDiv",
         map: map,
@@ -321,34 +353,6 @@
 	  
 	  /******************************************************************
        *
-       * Load hosted FeatureLayers and add to map
-       * 
-       ******************************************************************/
-	  
-	  featureLayerURL = "https://services8.arcgis.com/2Urly7krb67hfb0I/arcgis/rest/services/superproject_neu/FeatureServer/"
-	  
-	  var stationLayer = new FeatureLayer(
-	  {
-		url: featureLayerURL + "0"
-	  });
-	  
-	  var networkLayer = new FeatureLayer(
-	  {
-		url: featureLayerURL + "1"
-	  });
-	  
-	  var heroldLayer = new FeatureLayer(
-	  {
-		url: featureLayerURL + "2",
-		visible: false
-	  });
-	  
-	  map.add(stationLayer);
-	  // map.add(networkLayer);
-	  map.add(heroldLayer);
-	  
-	  /******************************************************************
-       *
        * Add industry groups from heroldLayer to form select
        * 
        ******************************************************************/
@@ -368,7 +372,7 @@
 	  function getValues(response) {
 		var features = response.features;
 		var values = features.map(function(feature) {
-			return feature.attributes.industry_group;
+			return feature.attributes.INDUSTR_01;
 		});
 		return values;
 	  }
@@ -405,7 +409,7 @@
 		 * TEST: Add the layer to a map
 		 *****************************************************************/
 		 
-		map.add(networkLayer);
+		heroldLayer.visible = true;
 	  });
 
       /******************************************************************
