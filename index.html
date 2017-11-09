@@ -141,8 +141,8 @@
             <div class="form-group">
               <label for="formIndustryGroup" class="col-xs-3 control-label">Station Properties</label>
               <div class="col-xs-9">
-					<input type="checkbox" name="stationProperties" value="wifi" id="property1"><span style="padding-left:10px;">Wifi Available</span></br>
-					<input type="checkbox" name="stationProperties" value="handicap" id="property2"><span style="padding-left:10px;">Handicap Friendly</span></br>
+					<input type="checkbox" name="stationProperties" value="wifi" id="stationProperties1"><span style="padding-left:10px;">Wifi Available</span></br>
+					<input type="checkbox" name="stationProperties" value="handicap" id="stationProperties2"><span style="padding-left:10px;">Handicap Friendly</span></br>
 					<span>(If none selected, all stations are used for query)</span>
 				</ul>
               </div>
@@ -403,13 +403,23 @@
        * 
        ******************************************************************/
 		
+	  var wifiPropertyCheck = dom.byId("stationProperties1");
+	  var handicapPropertyCheck = dom.byId("stationProperties2");
+	  var isochroneRangeSlider = dom.byId("queryRange");
+		
 	  on(dom.byId("startSearch"), "click", function() {
-
-		/*****************************************************************
-		 * TEST: Add the layer to a map
-		 *****************************************************************/
 		 
-		heroldLayer.visible = true;
+		industryGroup = industryGroupSelect.value;
+		wifi = wifiPropertyCheck.checked;
+		handicap = handicapPropertyCheck.checked;
+		iso = isochroneRangeSlider.value;
+		
+		if (wifi || handicap) {
+			// Filter stations
+			
+		}
+		
+		alert("Industry Group " + industryGroup + " // WIFI " + wifi + " // ELEVATOR " + handicap  + " // Isochrone " + iso);
 	  });
 
       /******************************************************************
