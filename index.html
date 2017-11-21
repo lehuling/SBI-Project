@@ -124,7 +124,7 @@
         </div>
       </div>
       <div id="collapseForm" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingForm">
-        <div class="panel-body" style="width: 500px;">
+        <div class="panel-body" style="width: 510px;">
           <div class="form-horizontal">
 		  
 			<!-- Industry Group -->
@@ -134,7 +134,7 @@
               <div class="col-xs-9">
                 <select id="selectIndustryGroup" class="form-control"></select>
               </div>
-            </div>
+            </div>		
 			
 			<!-- Station Properties -->
 
@@ -142,7 +142,7 @@
               <label for="formIndustryGroup" class="col-xs-3 control-label">Station Properties</label>
               <div class="col-xs-9">
 					<input type="checkbox" name="stationProperties" value="wifi" id="stationProperties1"><span style="padding-left:10px;">Wifi Available</span></br>
-					<input type="checkbox" name="stationProperties" value="handicap" id="stationProperties2"><span style="padding-left:10px;">Handicap Friendly</span></br>
+					<input type="checkbox" name="stationProperties" value="handicap" id="stationProperties2"><span style="padding-left:10px;">Barrier-free</span></br>
 					<span>(If none selected, all stations are used for query)</span>
 				</ul>
               </div>
@@ -151,19 +151,23 @@
 			<!-- Query Range -->
 			
 			<div class="form-group">
-			  <label for="formQueryRange" class="col-xs-3 control-label">Isochrone Range</label>
+			  <label for="formQueryRange" class="col-xs-3 control-label">Walking Distance</label>
               <div class="col-xs-9" style="padding-top: 6px;">
-				<input type="range" min="1" max="15" value="1" class="slider" id="queryRange" style="width: 280px;">
+				<input type="range" min="0" max="3" value="1" class="slider" id="queryRange" style="width: 280px;">
 				<span id="queryRangeValue" style="padding-left:10px;"></span>
 			  </div>
 			</div>
 			
+
+		
+		
+					
 			<!-- Start Search -->
 			
 			<div class="form-group">
 			  <label for="formStartSearch" class="col-xs-3 control-label"></label>
 			  <div class="col-xs-9">
-			    <input type="button" style="width: 342px;" class="btn" value="Search" id="startSearch">
+			    <input type="button" style="width: 345px;" class="btn" value="Search" id="startSearch">
 		      </div>
 			</div>
 			
@@ -185,9 +189,9 @@
       <div id="collapseBasemaps" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingBasemaps">
         <div class="panel-body" style="width: 500px;">
           <select id="selectBasemapPanel" class="form-control">
-			<option value="osm" data-vector="osm" selected="">Open Street Map</option>
-		    <option value="gray" data-vector="gray">Gray</option>
-            <option value="streets" data-vector="streets">Streets</option>
+			<option value="osm" data-vector="geolandbasemap" selected="">Open Street Map</option>
+		    <option value="gray" data-vector="bmapgrau">Gray</option>
+            <option value="streets" data-vector="bmaporthofoto30cm">Streets</option>
           </select>
         </div>
       </div>
@@ -199,11 +203,12 @@
   <script>
     var slider = document.getElementById("queryRange");
 	var output = document.getElementById("queryRangeValue");
-	output.innerHTML = slider.value + " min"; // Display the default slider value
+	var isosize = [3, 5, 7, 10]
+	output.innerHTML = isosize[slider.value] + " min"; // Display the default slider value
 
 	// Update the current slider value (each time you drag the slider handle)
 	slider.oninput = function() {
-		output.innerHTML = slider.value + " min";
+		output.innerHTML = isosize[slider.value] + " min";
 	}
   </script>
 
@@ -228,9 +233,11 @@
 
     require([
       "esri/Map",
-      "esri/views/MapView",
+      "esri/config",
+	  "esri/views/MapView",
 	  "esri/layers/FeatureLayer",
       "esri/layers/GraphicsLayer",
+	  "esri/layers/WMTSLayer",
 	  "esri/geometry/geometryEngine",
       "esri/Graphic",
       "esri/widgets/Search",
@@ -251,7 +258,7 @@
       "dojo/domReady!"
     ], 
 	
-	function(Map, MapView, FeatureLayer, GraphicsLayer, geometryEngine, Graphic, Search, Popup, watchUtils, query,
+	function(Map, esriConfig, MapView, FeatureLayer, GraphicsLayer, WMTSLayer, geometryEngine, Graphic, Search, Popup, watchUtils, query,
       on, dom, domConstruct) {
 
       /******************************************************************
@@ -262,8 +269,8 @@
 
       app = {
         center: [16.459493, 48.221086],
-        scale: 200000,
-        basemap: "osm",
+        scale: 175000,
+        basemap: "geolandbasemap",
         viewPadding: {
           top: 50,
           bottom: 0
@@ -301,7 +308,7 @@
 	  
 	  // Metro stations of Wiener Linien
 	  var stationLayer = new FeatureLayer({
-		url: featureLayerURL + "0",
+		url: featureLayerURL + "2",
 		outFields: ["*"],
 		// add a custom action
         popupTemplate: stationPopupTemplate
@@ -309,23 +316,38 @@
 	  
 	  // Metro network of Wiener Linien
 	  var networkLayer = new FeatureLayer({
-		url: featureLayerURL + "1"
+		url: featureLayerURL + "3"
 	  });
 	  
 	  // Business in Vienna
 	  var heroldLayer = new FeatureLayer({
-		url: featureLayerURL + "2",
+		url: featureLayerURL + "0",
 		outFields: ["*"],
 		visible: false
 	  });
+	  
+	  // Isochrone Layer to show the user
+	  var isoLayer = new FeatureLayer({
+		url: featureLayerURL + "1",
+		outFields: ["*"],
+		visible: false
+	  });
+	  
+	  esriConfig.request.corsEnabledServers.push("https://www.basemap.at");
+	  basemapLayer = new WMTSLayer({
+        url: "https://www.basemap.at/wmts/1.0.0/WMTSCapabilities.xml",
+        copyright: "<a target='_top' href='https://earthdata.nasa.gov'>Earthdata</a> by <a target='_top' href='https://www.nasa.gov'>NASA</a>",
+        activeLayer: {
+          id: app.basemap,
+        },
+      });
 	  
 	  // GraphicsLayer for displaying results
 	  var resultsLayer = new GraphicsLayer();
 
       // Create Map
       var map = new Map({
-        basemap: app.basemap,
-		layers: [stationLayer, networkLayer, heroldLayer, resultsLayer]
+		layers: [basemapLayer, stationLayer, networkLayer, heroldLayer, resultsLayer, isoLayer]
       });
 	  
 	  // Create mapView
@@ -351,6 +373,8 @@
         view: app.activeView
       }, "searchWidgetDiv");
 	  
+	  
+
 	  /******************************************************************
        *
        * Add industry groups from heroldLayer to form select
@@ -381,6 +405,7 @@
 		var uniqueValues = [];
 		
 		values.forEach(function(item, i) {
+		
 			if ((uniqueValues.length < 1 || uniqueValues.indexOf(item) === -1) && (item !== "")) {
 				uniqueValues.push(item);
 			}
@@ -421,6 +446,13 @@
 		
 		alert("Industry Group " + industryGroup + " // WIFI " + wifi + " // ELEVATOR " + handicap  + " // Isochrone " + iso);
 	  });
+	  
+	  	  // Show Isochrone when User clicks on the button
+	  on(dom.byId("showiso"), "click", function()
+	{
+	  isoLayer.visible = true;
+
+	});
 
       /******************************************************************
        *
@@ -533,8 +565,11 @@
 
       // Basemap events
       query("#selectBasemapPanel").on("change", function(e) {
-        app.mapView.map.basemap = e.target.options[e.target.selectedIndex]
-          .dataset.vector;
+        //app.mapView.map.basemap = e.target.options[e.target.selectedIndex]
+          //.dataset.vector;
+		//basemapLayer.activeLayer = {id: e.target.options[e.target.selectedIndex]
+          //.dataset.vector,}
+		alert(e.target.options[e.target.selectedIndex].dataset.vector);
       });
 
     });
