@@ -1,458 +1,687 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-  <link rel="shortcut icon" href="img/favicon.ico" />
-  <title>Wiener Linien Advertisement</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+	<link rel="shortcut icon" href="img/favicon.ico" />
+	<title>Wiener Linien Advertisement</title>
 
-  <!-- Calcite Bootstrap -->
-  <link rel="stylesheet" href="https://esri.github.io/calcite-maps/dist/css/calcite-bootstrap.min-v0.2.css">
+	<!-- Calcite Bootstrap -->
+	<link rel="stylesheet" href="https://esri.github.io/calcite-maps/dist/css/calcite-bootstrap.min-v0.2.css">
 
-  <!-- Calcite Maps -->
-  <link rel="stylesheet" href="https://esri.github.io/calcite-maps/dist/css/calcite-maps-arcgis-4.x.min-v0.2.css">
+	<!-- Calcite Maps -->
+	<link rel="stylesheet" href="https://esri.github.io/calcite-maps/dist/css/calcite-maps-arcgis-4.x.min-v0.2.css">
 
-  <!-- ArcGIS JS 4.0 -->
-  <link rel="stylesheet" href="https://js.arcgis.com/4.5/esri/css/main.css">
+	<!-- ArcGIS JS 4.0 -->
+	<link rel="stylesheet" href="https://js.arcgis.com/4.5/esri/css/main.css">
 
-  <style>
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-    }
-	
-	/* The slider itself */
-	.slider {
-		-webkit-appearance: none;  /* Override default CSS styles */
-		appearance: none;
-		width: 100%; /* Full-width */
-		height: 15px; /* Specified height */
-		background: #d3d3d3; /* Grey background */
-		outline: none; /* Remove outline */
-		float: left;
-		margin-top: 5px;
-	}
+	<style>
+		html,
+		body {
+		  margin: 0;
+		  padding: 0;
+		  height: 100%;
+		}
+		
+		/* Define Slider CSS */
+		.slider {
+			-webkit-appearance: none;  /* Override default CSS styles */
+			appearance: none;
+			width: 100%; /* Full-width */
+			height: 15px; /* Specified height */
+			background: #d3d3d3; /* Grey background */
+			outline: none; /* Remove outline */
+			float: left;
+			margin-top: 5px;
+		}
 
-	/* Mouse-over effects */
-	.slider:hover {
-		opacity: 1; /* Fully shown on mouse-over */
-	}
+		.slider:hover {
+			opacity: 1; /* Fully shown on mouse-over */
+		}
 
-	/* The slider handle (use webkit (Chrome, Opera, Safari, Edge) and moz (Firefox) to override default look) */ 
-	.slider::-webkit-slider-thumb {
-		-webkit-appearance: none; /* Override default look */
-		appearance: none;
-		width: 15px; /* Set a specific slider handle width */
-		height: 25px; /* Slider handle height */
-		background: #db3333; /* Green background */
-		cursor: pointer; /* Cursor on hover */
-	}
+		.slider::-webkit-slider-thumb {
+			-webkit-appearance: none; /* Override default look */
+			appearance: none;
+			width: 15px; /* Set a specific slider handle width */
+			height: 25px; /* Slider handle height */
+			background: #db3333; /* Green background */
+			cursor: pointer; /* Cursor on hover */
+		}
 
-	.slider::-moz-range-thumb {
-		width: 15px; /* Set a specific slider handle width */
-		height: 25px; /* Slider handle height */
-		background: #db3333; /* Green background */
-		cursor: pointer; /* Cursor on hover */
-	}
-  </style>
-
+		.slider::-moz-range-thumb {
+			width: 15px; /* Set a specific slider handle width */
+			height: 25px; /* Slider handle height */
+			background: #db3333; /* Green background */
+			cursor: pointer; /* Cursor on hover */
+		}
+	</style>
 </head>
 
 <body class="calcite-maps calcite-nav-top">
 
-  <!-- Navbar -->
-
-  <nav class="navbar calcite-navbar navbar-fixed-top calcite-text-light calcite-bg-dark">
-    <!-- Menu -->
-    <div class="dropdown calcite-dropdown calcite-text-dark calcite-bg-light" role="presentation">
-      <a class="dropdown-toggle" role="button" aria-haspopup="true" aria-expanded="false">
-        <div class="calcite-dropdown-toggle">
-          <span class="sr-only">Toggle dropdown menu</span>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-      </a>
-      <ul class="dropdown-menu">
-		<li><a role="button" data-target="#panelForm" aria-haspopup="true"><span class="glyphicon glyphicon-edit"></span> Map Query</a></li>
-        <li><a role="button" data-target="#panelBasemaps" aria-haspopup="true"><span class="glyphicon glyphicon-th-large"></span> Basemaps</a></li>
-      </ul>
-    </div>
-    <!-- Title -->
-    <div class="calcite-title calcite-overflow-hidden">
-      <span class="calcite-title-main"><img src="img/WL_logo_full.png" width="200" height="40" alt="Wiener Linien"></img> Advertisement</span>
-      <span class="calcite-title-divider hidden-xs"></span>
-      <span class="calcite-title-sub hidden-xs">Find the best location for your advertisement in the Wiener Linien network!</span>
-    </div>
-    <!-- Nav -->
-    <ul class="nav navbar-nav calcite-nav">
-      <li>
-        <div class="calcite-navbar-search calcite-search-expander">
-          <div id="searchWidgetDiv"></div>
-        </div>
-      </li>
-    </ul>
-  </nav>
-  <!--/.calcite-navbar -->
-
-  <!-- Map  -->
-
-  <div class="calcite-map calcite-map-absolute">
-    <div id="tabContainer" class="tab-content">
-      <div id="2dTab" class="tab-pane fade in active" role="tabpanel">
-        <div id="mapViewDiv"></div>
-      </div>
-    </div>
-  </div>
-  <!-- /.calcite-map -->
-
-  <!-- Panels -->
-
-  <div class="calcite-panels calcite-panels-right calcite-text-light calcite-bg-dark panel-group">
-
-    <!-- Panel Query Form -->
+	<!-- Navbar -->
+	<nav class="navbar calcite-navbar navbar-fixed-top calcite-text-light calcite-bg-dark">
 	
-	<div id="panelForm" class="panel panel-map collapse in">
-      <div id="headingSettings" class="panel-heading">
-        <div class="panel-title">
-          <a class="panel-toggle" role="button" data-toggle="collapse" href="#collapseForm"
-            data-parent="#panelAccordion" aria-expanded="true" aria-controls="collapseForm"><span class="glyphicon glyphicon-edit" aria-hidden="true"></span><span class="panel-label">Map Query</span></a>
-          <a class="panel-close" role="button" data-toggle="collapse" data-target="#panelForm"><span class="esri-icon esri-icon-close" aria-hidden="true"></span></a>
-        </div>
-      </div>
-      <div id="collapseForm" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingForm">
-        <div class="panel-body" style="width: 510px;">
-          <div class="form-horizontal">
-		  
-			<!-- Industry Group -->
-
-            <div class="form-group">
-              <label for="formIndustryGroup" class="col-xs-3 control-label">Industry Group</label>
-              <div class="col-xs-9">
-                <select id="selectIndustryGroup" class="form-control"></select>
-              </div>
-            </div>		
-			
-			<!-- Station Properties -->
-
-            <div class="form-group">
-              <label for="formIndustryGroup" class="col-xs-3 control-label">Station Properties</label>
-              <div class="col-xs-9">
-					<input type="checkbox" name="stationProperties" value="wifi" id="stationProperties1"><span style="padding-left:10px;">Wifi Available</span></br>
-					<input type="checkbox" name="stationProperties" value="handicap" id="stationProperties2"><span style="padding-left:10px;">Barrier-free</span></br>
-					<span>(If none selected, all stations are used for query)</span>
-				</ul>
-              </div>
-            </div>
-			
-			<!-- Query Range -->
-			
-			<div class="form-group">
-			  <label for="formQueryRange" class="col-xs-3 control-label">Walking Distance</label>
-              <div class="col-xs-9" style="padding-top: 6px;">
-				<input type="range" min="0" max="3" value="1" class="slider" id="queryRange" style="width: 280px;">
-				<span id="queryRangeValue" style="padding-left:10px;"></span>
-			  </div>
-			</div>
-			
-
+		<!-- Menu -->
+		<div class="dropdown calcite-dropdown calcite-text-dark calcite-bg-light" role="presentation">
+			<a class="dropdown-toggle" role="button" aria-haspopup="true" aria-expanded="false">
+				<div class="calcite-dropdown-toggle">
+					<span class="sr-only">Toggle dropdown menu</span>
+					<span></span>
+					<span></span>
+					<span></span>
+					<span></span>
+				</div>
+			</a>
+			<ul class="dropdown-menu">
+				<li><a role="button" data-target="#panelForm" aria-haspopup="true"><span class="glyphicon glyphicon-edit"></span> Map Query</a></li>
+				<li><a role="button" data-target="#panelBasemaps" aria-haspopup="true"><span class="glyphicon glyphicon-th-large"></span> Basemaps</a></li>
+			</ul>
+		</div>
 		
+		<!-- Title -->
+		<div class="calcite-title calcite-overflow-hidden">
+			<span class="calcite-title-main"><img src="img/WL_logo_full.png" width="200" height="40" alt="Wiener Linien"></img> Advertisement</span>
+			<span class="calcite-title-divider hidden-xs"></span>
+			<span class="calcite-title-sub hidden-xs">Find the best location for your advertisement in the Wiener Linien network!</span>
+		</div>
 		
-					
-			<!-- Start Search -->
-			
-			<div class="form-group">
-			  <label for="formStartSearch" class="col-xs-3 control-label"></label>
-			  <div class="col-xs-9">
-			    <input type="button" style="width: 345px;" class="btn" value="Search" id="startSearch">
-		      </div>
+		<!-- Nav -->
+		<ul class="nav navbar-nav calcite-nav">
+			<li>
+				<div class="calcite-navbar-search calcite-search-expander">
+					<div id="searchWidgetDiv"></div>
+				</div>
+			</li>
+		</ul>
+	</nav>
+
+	<!-- Map  -->
+	<div class="calcite-map calcite-map-absolute">
+		<div id="tabContainer" class="tab-content">
+			<div id="2dTab" class="tab-pane fade in active" role="tabpanel">
+				<div id="mapViewDiv"></div>
 			</div>
-			
-          </div>
-        </div>
-      </div>
-    </div>
+		</div>
+	</div>
+
+	<!-- Panels -->
+	<div class="calcite-panels calcite-panels-right calcite-text-light calcite-bg-dark panel-group">
+
+		<!-- Panel Query Form -->
+		<div id="panelForm" class="panel panel-map collapse in">
+			<div id="headingSettings" class="panel-heading">
+				<div class="panel-title">
+					<a class="panel-toggle" role="button" data-toggle="collapse" href="#collapseForm" data-parent="#panelAccordion" aria-expanded="true" aria-controls="collapseForm">
+						<span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
+						<span class="panel-label">Map Query</span>
+					</a>
+					<a class="panel-close" role="button" data-toggle="collapse" data-target="#panelForm">
+						<span class="esri-icon esri-icon-close" aria-hidden="true"></span>
+					</a>
+				</div>
+			</div>
+			<div id="collapseForm" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingForm">
+				<div class="panel-body" style="width: 500px;">
+					<div class="form-horizontal">
+			  
+						<!-- Query Range -->
+						<div class="form-group">
+							<label for="formQueryRange" class="col-xs-3 control-label">Walking Distance</label>
+							<div class="col-xs-9" style="padding-top: 6px;">
+								<input type="range" min="0" max="3" value="1" class="slider" id="queryRange" style="width: 280px;">
+								<span id="queryRangeValue" style="padding-left:10px;">5 min</span>
+							</div>
+						</div>
+						
+						<!-- Industry Group -->
+						<div class="form-group">
+							<label for="formIndustryGroup" class="col-xs-3 control-label">Industry Group</label>
+							<div class="col-xs-9">
+								<select id="selectIndustryGroup" class="form-control"></select>
+							</div>
+						</div>		
+				
+						<!-- Station Properties -->
+						<div class="form-group">
+							<label for="formIndustryGroup" class="col-xs-3 control-label">Station Properties</label>
+							<div class="col-xs-9">
+								<input type="checkbox" name="stationProperties" value="wifi" id="stationProperties1"><span style="padding-left:10px;">Wifi Available</span></br>
+								<input type="checkbox" name="stationProperties" value="barrier" id="stationProperties2"><span style="padding-left:10px;">Barrier-free</span></br>
+								<span>(If none selected, all stations are used for query)</span>
+							</div>
+						</div>
+						
+						<!-- Start Search -->
+						<div class="form-group">
+							<label for="formStartSearch" class="col-xs-3 control-label"></label>
+							<div class="col-xs-9">
+								<input type="button" style="width: 345px;" class="btn" value="Search" id="startSearch">
+							</div>
+						</div>
+						
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<!-- Report Panel -->
+		<div id="panelReport" class="panel collapse">
+			<div id="headingReport" class="panel-heading" role="tab">
+				<div class="panel-title">
+					<a class="panel-toggle collapsed" role="button" data-toggle="collapse" href="#collapseReport" aria-expanded="false" aria-controls="collapseReport">
+						<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+						<span class="panel-label">Report</span>
+					</a>
+					<a class="panel-close" role="button" data-toggle="collapse" data-target="#panelReport">
+						<span class="esri-icon esri-icon-close" aria-hidden="true"></span>
+					</a>
+				</div>
+			</div>
+			<div id="collapseReport" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingReport">
+				<div class="panel-body" style="width: 500px;">
+					<div id="resultsTableDIV">
+						<table id="resultsTable" class="table-bordered"></table>
+					</div>
+				</div>
+			</div>
+		</div>
 	
-	<!-- Basemaps Panel -->
+		<!-- Basemaps Panel -->
+		<div id="panelBasemaps" class="panel collapse">
+			<div id="headingBasemaps" class="panel-heading" role="tab">
+				<div class="panel-title">
+					<a class="panel-toggle collapsed" role="button" data-toggle="collapse" href="#collapseBasemaps" aria-expanded="false" aria-controls="collapseBasemaps">
+						<span class="glyphicon glyphicon-th-large" aria-hidden="true"></span>
+						<span class="panel-label">Basemaps</span>
+					</a>
+					<a class="panel-close" role="button" data-toggle="collapse" data-target="#panelBasemaps">
+						<span class="esri-icon esri-icon-close" aria-hidden="true"></span>
+					</a>
+				</div>
+			</div>
+			<div id="collapseBasemaps" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingBasemaps">
+				<div class="panel-body" style="width: 500px;">
+					<select id="selectBasemapPanel" class="form-control">
+						<option value="osm" data-vector="bmapgrau" selected="">Basemap Vienna GRAY</option>
+						<option value="gray" data-vector="geolandbasemap">Basemap Vienna STANDARD</option>
+						<option value="streets" data-vector="bmaporthofoto30cm">Basemap Vienna ORTHOFOTO</option>
+					</select>
+				</div>
+			</div>
+		</div>
 
-    <div id="panelBasemaps" class="panel collapse">
-      <div id="headingBasemaps" class="panel-heading" role="tab">
-        <div class="panel-title">
-          <a class="panel-toggle collapsed" role="button" data-toggle="collapse" href="#collapseBasemaps"
-            aria-expanded="false" aria-controls="collapseBasemaps"><span class="glyphicon glyphicon-th-large" aria-hidden="true"></span><span class="panel-label">Basemaps</span></a>
-          <a class="panel-close" role="button" data-toggle="collapse" data-target="#panelBasemaps"><span class="esri-icon esri-icon-close" aria-hidden="true"></span></a>
-        </div>
-      </div>
-      <div id="collapseBasemaps" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingBasemaps">
-        <div class="panel-body" style="width: 500px;">
-          <select id="selectBasemapPanel" class="form-control">
-			<option value="osm" data-vector="geolandbasemap" selected="">Open Street Map</option>
-		    <option value="gray" data-vector="bmapgrau">Gray</option>
-            <option value="streets" data-vector="bmaporthofoto30cm">Streets</option>
-          </select>
-        </div>
-      </div>
-    </div>
+	</div>
 
-  </div>
-  <!-- /.calcite-panels -->
-  
-  <script>
-    var slider = document.getElementById("queryRange");
-	var output = document.getElementById("queryRangeValue");
-	var isosize = [3, 5, 7, 10]
-	output.innerHTML = isosize[slider.value] + " min"; // Display the default slider value
+	<!-- Dojo Config -->
+	<script type="text/javascript">
+		var dojoConfig = {
+			packages: [{
+				name: "bootstrap",
+				location: "https://esri.github.io/calcite-maps/dist/vendor/dojo-bootstrap"
+			},
+			{
+				name: "calcite-maps",
+				location: "https://esri.github.io/calcite-maps/dist/js/dojo"
+			}]
+		};
+	</script>
 
-	// Update the current slider value (each time you drag the slider handle)
-	slider.oninput = function() {
-		output.innerHTML = isosize[slider.value] + " min";
-	}
-  </script>
+	<!-- ArcGIS JS 4.0 -->
+	<script src="https://js.arcgis.com/4.5/"></script>
 
-  <script type="text/javascript">
-    var dojoConfig = {
-      packages: [{
-        name: "bootstrap",
-        location: "https://esri.github.io/calcite-maps/dist/vendor/dojo-bootstrap"
-      },
-      {
-        name: "calcite-maps",
-        location: "https://esri.github.io/calcite-maps/dist/js/dojo"
-      }]
-    };
-  </script>
+	<script>
+		var app;
 
-  <!-- ArcGIS JS 4.0 -->
-  <script src="https://js.arcgis.com/4.5/"></script>
+		require([
+			"esri/Map",
+			"esri/config",
+			"esri/views/MapView",
+			"esri/layers/FeatureLayer",
+			"esri/layers/GraphicsLayer",
+			"esri/layers/WMTSLayer",
+			"esri/geometry/geometryEngine",
+			"esri/Graphic",
+			"esri/widgets/Search",
+			"esri/widgets/Popup",
+			"esri/core/watchUtils",
+			"dojo/query",
+			"dojo/on",
+			"dojo/dom",
+			"dojo/dom-construct",
 
-  <script>
-    var app;
+			// Bootstrap
+			"bootstrap/Collapse",
+			"bootstrap/Dropdown",
+			"bootstrap/Tab",
 
-    require([
-      "esri/Map",
-      "esri/config",
-	  "esri/views/MapView",
-	  "esri/layers/FeatureLayer",
-      "esri/layers/GraphicsLayer",
-	  "esri/layers/WMTSLayer",
-	  "esri/geometry/geometryEngine",
-      "esri/Graphic",
-      "esri/widgets/Search",
-      "esri/widgets/Popup",
-      "esri/core/watchUtils",
-      "dojo/query",
-      "dojo/on",
-	  "dojo/dom",
-      "dojo/dom-construct",
-
-      // Bootstrap
-      "bootstrap/Collapse",
-      "bootstrap/Dropdown",
-      "bootstrap/Tab",
-
-      // Calcite Maps
-      "calcite-maps/calcitemaps-v0.2",
-      "dojo/domReady!"
-    ], 
+			// Calcite Maps
+			"calcite-maps/calcitemaps-v0.2",
+			"dojo/domReady!"
+		], 
 	
-	function(Map, esriConfig, MapView, FeatureLayer, GraphicsLayer, WMTSLayer, geometryEngine, Graphic, Search, Popup, watchUtils, query,
-      on, dom, domConstruct) {
+		function(Map, esriConfig, MapView, FeatureLayer, GraphicsLayer, WMTSLayer, geometryEngine, Graphic, 
+			Search, Popup, watchUtils, query, on, dom, domConstruct) {
 
-      /******************************************************************
-       *
-       * App settings
-       * 
-       ******************************************************************/
+			/******************************************************************
+			*
+			* App settings
+			* 
+			******************************************************************/
 
-      app = {
-        center: [16.459493, 48.221086],
-        scale: 175000,
-        basemap: "geolandbasemap",
-        viewPadding: {
-          top: 50,
-          bottom: 0
-        },
-        uiComponents: ["zoom", "compass", "attribution"],
-        dockOptions: {
-          position: "auto",
-          // Custom docking breakpoints
-          breakpoint: {
-            width: 768,
-            height: 768
-          }
-        },
-        mapView: null,
-        activeView: null,
-        searchWidget: null,
-        screenWidth: 0
-      };
+			app = {
+				center: [16.438472, 48.214285],
+				scale: 125000,
+				basemap: "bmapgrau",
+				viewPadding: {
+					top: 50,
+					bottom: 0
+				},
+				uiComponents: ["zoom", "compass"],
+				dockOptions: {
+					position: "auto",
+					// Custom docking breakpoints
+					breakpoint: {
+						width: 768,
+						height: 768
+					}
+				},
+				mapView: null,
+				activeView: null,
+				searchWidget: null,
+				screenWidth: 0
+			};
 
-      /******************************************************************
-       *
-       * Create the map view and ui components
-       * 
-       ******************************************************************/
+			/******************************************************************
+			*
+			* Create the map view and ui components
+			* 
+			******************************************************************/
 	   
-	  // FeatureLayer hosting URL
-	  featureLayerURL = "https://services8.arcgis.com/2Urly7krb67hfb0I/arcgis/rest/services/superproject_neu/FeatureServer/"
+			// FeatureLayer hosting URL
+			featureLayerURL = "https://services8.arcgis.com/2Urly7krb67hfb0I/arcgis/rest/services/superproject_neu/FeatureServer/"
 	  
-	  var stationPopupTemplate = { // autocasts as new PopupTemplate()
-        title: "Station: {HTXT}",
-        content: "<p>Properties:</p>" +
-          "<ul><li>Wifi Availability: {WIFI}</li>" +
-          "<li>Handicap Friendliness: {ELEVATOR}</li></ul>"
-      };
+			var stationPopupTemplate = { // autocasts as new PopupTemplate()
+				title: "Station: {HTXT}",
+				content: "<p>Properties:</p>" +
+					"<ul><li>Wifi Availability: {WIFI}</li>" +
+					"<li>Barrier-free: {ELEVATOR}</li></ul>"
+			};
 	  
-	  // Metro stations of Wiener Linien
-	  var stationLayer = new FeatureLayer({
-		url: featureLayerURL + "2",
-		outFields: ["*"],
-		// add a custom action
-        popupTemplate: stationPopupTemplate
-	  });
+			var heroldPopupTemplate = { // autocasts as new PopupTemplate()
+				title: "Company: {COMPANY}",
+				content: "<p>Properties:</p>" +
+					"<ul><li>Industry Group: {INDUSTR_01}</li>" +
+					"<li>Turnover: {TURNOVER} &euro;</li>" +
+					"<li>Employees: {EMPLOYEES}</li>" +
+					"<li>Address: {STREET}, {ZIP} {CITY}</li>" +
+					"<li>URL: {HTTP}</li></ul>"
+			};
 	  
-	  // Metro network of Wiener Linien
-	  var networkLayer = new FeatureLayer({
-		url: featureLayerURL + "3"
-	  });
+			// Metro stations of Wiener Linien
+			var stationLayer = new FeatureLayer({
+				url: featureLayerURL + "1",
+				outFields: ["*"],
+				popupTemplate: stationPopupTemplate
+			});
 	  
-	  // Business in Vienna
-	  var heroldLayer = new FeatureLayer({
-		url: featureLayerURL + "0",
-		outFields: ["*"],
-		visible: false
-	  });
+			// Metro network of Wiener Linien
+			var networkLayer = new FeatureLayer({
+				url: featureLayerURL + "3"
+			});
 	  
-	  // Isochrone Layer to show the user
-	  var isoLayer = new FeatureLayer({
-		url: featureLayerURL + "1",
-		outFields: ["*"],
-		visible: false
-	  });
+			// Business in Vienna
+			var heroldLayer = new FeatureLayer({
+				url: featureLayerURL + "2",
+				outFields: ["*"],
+				popupTemplate: heroldPopupTemplate,
+				visible: false
+			});
 	  
-	  esriConfig.request.corsEnabledServers.push("https://www.basemap.at");
-	  basemapLayer = new WMTSLayer({
-        url: "https://www.basemap.at/wmts/1.0.0/WMTSCapabilities.xml",
-        copyright: "<a target='_top' href='https://earthdata.nasa.gov'>Earthdata</a> by <a target='_top' href='https://www.nasa.gov'>NASA</a>",
-        activeLayer: {
-          id: app.basemap,
-        },
-      });
+			// Isochrone Layer to show the user
+			var isoLayer = new FeatureLayer({
+				url: featureLayerURL + "4",
+				outFields: ["*"],
+				visible: false
+			});
 	  
-	  // GraphicsLayer for displaying results
-	  var resultsLayer = new GraphicsLayer();
+			esriConfig.request.corsEnabledServers.push("https://www.basemap.at");
+			basemapLayer = new WMTSLayer({
+				url: "https://www.basemap.at/wmts/1.0.0/WMTSCapabilities.xml",
+				copyright: "<a target='_top' href='https://earthdata.nasa.gov'>Earthdata</a> by <a target='_top' href='https://www.nasa.gov'>NASA</a>",
+				activeLayer: {
+					id: app.basemap,
+				},
+			});
+	  
+			// GraphicsLayer for displaying results
+			var resultsLayer = new GraphicsLayer();
+			var stationsResultLayerID = '';
 
-      // Create Map
-      var map = new Map({
-		layers: [basemapLayer, stationLayer, networkLayer, heroldLayer, resultsLayer, isoLayer]
-      });
+			// Create Map
+			var map = new Map({
+				layers: [basemapLayer, networkLayer, stationLayer, heroldLayer, isoLayer, resultsLayer]
+			});
 	  
-	  // Create mapView
-      app.mapView = new MapView({
-        container: "mapViewDiv",
-        map: map,
-        center: app.center,
-        scale: app.scale,
-        padding: app.viewPadding,
-        popup: new Popup({
-          dockOptions: app.dockOptions
-        }),
-        ui: {
-          components: app.uiComponents
-        }
-      });
+			// Create mapView
+			app.mapView = new MapView({
+				container: "mapViewDiv",
+				map: map,
+				center: app.center,
+				scale: app.scale,
+				padding: app.viewPadding,
+				popup: new Popup({
+					dockOptions: app.dockOptions
+				}),
+				ui: {
+					components: app.uiComponents
+				}
+			});
 
-      // Set the active view to scene
-      app.activeView = app.mapView;
+			// Set the active view to scene
+			app.activeView = app.mapView;
 
-      // Create the search widget and add it to the navbar instead of view
-      app.searchWidget = new Search({
-        view: app.activeView
-      }, "searchWidgetDiv");
+			// Create the search widget and add it to the navbar instead of view
+			app.searchWidget = new Search({
+				view: app.activeView
+			}, "searchWidgetDiv");
 	  
-	  
-
-	  /******************************************************************
-       *
-       * Add industry groups from heroldLayer to form select
-       * 
-       ******************************************************************/
-	
-	  var industryGroupSelect = dom.byId("selectIndustryGroup");
-	
-	  app.mapView.then(function() {
-		return heroldLayer.then(function() {
-			var query = heroldLayer.createQuery();
-			return heroldLayer.queryFeatures(query);
-		});
-	  })
-	  .then(getValues)
-	  .then(getUniqueValues)
-	  .then(addToSelect);
-	  
-	  function getValues(response) {
-		var features = response.features;
-		var values = features.map(function(feature) {
-			return feature.attributes.INDUSTR_01;
-		});
-		return values;
-	  }
-	  
-	  function getUniqueValues(values) {
-		var uniqueValues = [];
+			/******************************************************************
+			*
+			* Add industry groups from heroldLayer to dropdown
+			* 
+			******************************************************************/
 		
-		values.forEach(function(item, i) {
+			var industryGroupSelect = dom.byId("selectIndustryGroup");
 		
-			if ((uniqueValues.length < 1 || uniqueValues.indexOf(item) === -1) && (item !== "")) {
-				uniqueValues.push(item);
+			app.mapView.then(function() {
+				return heroldLayer.then(function() {
+					var query = heroldLayer.createQuery();
+					
+					return heroldLayer.queryFeatures(query);
+				});
+			})
+				.then(getValues)
+				.then(getUniqueValues)
+				.then(addToSelect);
+		  
+			function getValues(response) {
+				var features = response.features;
+				var values = features.map(function(feature) {
+					return feature.attributes.INDUSTR_01;
+				});
+				
+				return values;
 			}
-		});
-		return uniqueValues;
-	  }
-	  
-	  function addToSelect(values) {
-		values.sort();
-		values.forEach(function(value) {
-			var option = domConstruct.create("option");
-			option.text = value;
-			industryGroupSelect.add(option);
-		});
-	  }
-		
-	  /******************************************************************
-       *
-       * Wire UI search event
-       * 
-       ******************************************************************/
-		
-	  var wifiPropertyCheck = dom.byId("stationProperties1");
-	  var handicapPropertyCheck = dom.byId("stationProperties2");
-	  var isochroneRangeSlider = dom.byId("queryRange");
-		
-	  on(dom.byId("startSearch"), "click", function() {
-		 
-		industryGroup = industryGroupSelect.value;
-		wifi = wifiPropertyCheck.checked;
-		handicap = handicapPropertyCheck.checked;
-		iso = isochroneRangeSlider.value;
-		
-		if (wifi || handicap) {
-			// Filter stations
+		  
+			function getUniqueValues(values) {
+				var uniqueValues = [];
 			
-		}
+				values.forEach(function(item, i) {
+					if ((uniqueValues.length < 1 || uniqueValues.indexOf(item) === -1) && (item !== "")) {
+						uniqueValues.push(item);
+					}
+				});
+				
+				return uniqueValues;
+			}
+		  
+			function addToSelect(values) {
+				values.sort();
+				values.forEach(function(value) {
+					var option = domConstruct.create("option");
+					option.text = value;
+					industryGroupSelect.add(option);
+				});
+			}
 		
-		alert("Industry Group " + industryGroup + " // WIFI " + wifi + " // ELEVATOR " + handicap  + " // Isochrone " + iso);
-	  });
-	  
-	  	  // Show Isochrone when User clicks on the button
-	  on(dom.byId("showiso"), "click", function()
-	{
-	  isoLayer.visible = true;
+			/******************************************************************
+			*
+			* Wire query form UI events
+			* 
+			******************************************************************/
+		
+			var wifiPropertyCheck = dom.byId("stationProperties1");
+			var barrierPropertyCheck = dom.byId("stationProperties2");
+			var rangeSlider = dom.byId("queryRange");
+			var isosize = [3, 5, 7, 10];
+			
+			// display the range and isochrone selected by the user
+			on(rangeSlider, "input", function() {
+				// display selected range
+				dom.byId("queryRangeValue").innerText = isosize[rangeSlider.value] + " min";
+			});
+			
+			on(dom.byId("startSearch"), "click", function() {		
+				// Filter isochrones
+				queryStations()
+					.then(createLayer)
+					.then(createReport)
+					.then(queryHerold)
+					.then(displayHerold);
+			});
+			
+			function queryStations() {
+				var query = isoLayer.createQuery();
+				var wifi = wifiPropertyCheck.checked;
+				var barrier = barrierPropertyCheck.checked;
+				var where_costs = "Stations_costs = " + isosize[rangeSlider.value];
+				var where_IG = "Herold_intersect_ISO2_Statis1_1 = '" + industryGroupSelect.value + "'";
+				var where_wifi = "Stations_WIFI = 'YES'";
+				var where_barrier = "Stations_ELEVATOR = 'YES'";
+				
+				if (wifi && barrier) {
+					query.where = where_costs + " AND " + where_IG + " AND " + where_wifi + " AND " + where_barrier;
+				} else if (wifi) {
+					query.where = where_costs + " AND " + where_IG + " AND " + where_wifi;
+				} else if (barrier) {
+					query.where = where_costs + " AND " + where_IG + " AND " + where_barrier;
+				} else {
+					query.where = where_costs + " AND " + where_IG;
+				}
+				
+				return isoLayer.queryFeatures(query);
+			}
+			
+			var fields = [
+				{
+					name: "OBJECTID",
+					alias: "OBJECTID",
+					type: "oid"
+				}, {
+					name: "Herold_intersect_ISO2_Statis1_1",
+					alias: "Industry Group",
+					type: "string"
+				}, {
+					name: "Herold_intersect_ISO2_Statis1_2",
+					alias: "GID",
+					type: "integer"
+				}, {
+					name: "Herold_intersect_ISO2_Statis1_3",
+					alias: "Frequency",
+					type: "integer"
+				}, {
+					name: "Stations_id",
+					alias: "Stations_ID",
+					type: "integer"
+				}, {
+					name: "Stations_costs",
+					alias: "Walking Distance",
+					type: "integer"
+				}, {
+					name: "Stations_HTXT",
+					alias: "Station Name",
+					type: "string"
+				}, {
+					name: "Stations_WIFI",
+					alias: "WIFI",
+					type: "string"
+				}, {
+					name: "Stations_ELEVATOR",
+					alias: "Elevator",
+					type: "string"
+				}, {
+					name: "Shape__Area",
+					alias: "Shape__Area",
+					type: "double"
+				}, {
+					name: "Shape__Length",
+					alias: "Shape__Length",
+					type: "double"
+			}];
+			
+			var defaultSym = {
+				type: "simple-fill", // autocasts as new SimpleFillSymbol()
+				outline: { // autocasts as new SimpleLineSymbol()
+					color: "lightgray",
+					width: 0.5
+				}
+			};
+			
+			function createLayer(results) {
+				resultsLayer.removeAll();
+				if (stationsResultLayerID != '') {
+					var old_lyr = map.findLayerById(stationsResultLayerID);
+					map.remove(old_lyr);
+				}
+				var features = results.features;
+				var freq = features.map(function(feature) {
+					return feature.attributes.Herold_intersect_ISO2_Statis1_3;
+				});
+				var max_freq = Math.max.apply(null, freq);
+				var min_freq = Math.min.apply(null, freq);
+				var lyr = new FeatureLayer({
+					source: features, // autocast as an array of esri/Graphic
+					// create an instance of esri/layers/support/Field for each field object
+					fields: fields, // This is required when creating a layer from Graphics
+					objectIdField: "ObjectID", // This must be defined when creating a layer from Graphics
+					renderer: {
+						type: "simple", // autocasts as new SimpleRenderer()
+						symbol: defaultSym,
+						label: "Frequency of selected Industry Group",
+						visualVariables: [{
+							type: "color",
+							field: "Herold_intersect_ISO2_Statis1_3",
+							stops: [
+							{
+								value: min_freq,
+								color: [189, 253, 157, 0.9],
+								label: min_freq
+							},
+							{
+								value: max_freq,
+								color: [11, 63, 0, 0.9],
+								label: max_freq
+							}]
+						}]
+					}, // set the visualization on the layer
+					geometryType: "polygon", // Must be set when creating a layer from Graphics
+				});
+				map.add(lyr);
+				stationsResultLayerID = lyr.id;
+				map.reorder(lyr, 1);
+				
+				return results;
+			}
+			
+			function createReport(results) {
+				var features = results.features;
+				var table_val = features.map(function(feature) {
+					return [feature.attributes.Stations_HTXT, feature.attributes.Herold_intersect_ISO2_Statis1_3];
+				});
+				table_val.sort(compareSecondColumn);
 
-	});
+				function compareSecondColumn(a, b) {
+					if (a[1] === b[1]) {
+						return 0;
+					}
+					else {
+						return (a[1] > b[1]) ? -1 : 1;
+					}
+				}
+				
+				// Access table and div
+				var table = document.getElementById('resultsTable');
+				var div = document.getElementById('resultsTableDIV');
+				
+				// Remove old report from table and div 
+				table.innerHTML = "";
+				div.innerHTML = "";
+				
+				// Insert new row for table head
+				var headings = [['<b>#</b>', "width:5%; padding:5px; text-align:center"], ['<b>Station</b>', "width:65%; padding:5px"], 
+								['<b>Industry Group Frequency</b>', "width:30%; padding:5px"]];
+				var head = table.insertRow(0);
+				
+				// Insert table head columns
+				for (i = 0; i < 3; i++) {
+					var headcol = head.insertCell(i);
+					headcol.setAttribute("style", headings[i][1]);
+					headcol.innerHTML = headings[i][0];
+				}
+				
+				// For max top 10 results insert rows and values
+				amount_res = Math.min(table_val.length, 5);
+				for (i = 0; i < amount_res; i++) { 
+					var row = table.insertRow(i+1);
+					for (j = 0; j < 3; j++) {
+						var rowcol = row.insertCell(j);
+						if (j == 0){
+							rowcol.setAttribute("style", "padding:5px; text-align:center");
+							rowcol.innerHTML = i+1;
+						} else {
+							rowcol.setAttribute("style", "padding:5px");
+							rowcol.innerHTML = table_val[i][j-1];
+						}
+					}
+				}
+				
+				// Append table and results statement
+				div.append(table);
+				div.append(document.createElement('br'));
+				div.append(document.createElement('p').appendChild(document.createTextNode("(Top " + amount_res + " results)")));
+				
+				// Toggle report if not toggled
+				query("#panelReport").collapse("show");
+				query("#collapseReport").collapse("show");
+				
+				return results
+			}
+			
+			function queryHerold(results) {	
+				var features = results.features;
+				var gids = features.map(function(feature) {
+					return feature.attributes.Herold_intersect_ISO2_Statis1_2;
+				});
+				SQL = "";
+				gids.forEach(addSQL);
+				function addSQL(item, index) {
+					if (SQL == "") {
+						SQL = SQL + "(gid = " + item;
+					} else {
+						SQL = SQL + " OR gid = " + item;
+					}
+				}
+				
+				var query = heroldLayer.createQuery();
+				query.where = SQL + ") AND INDUSTR_01 = '" + industryGroupSelect.value + "'";
+				
+				return heroldLayer.queryFeatures(query);
+			}
+			
+			function displayHerold(results) {
+				// display relevant businesses in map
+				var features = results.features.map(function(graphic) {
+					graphic.symbol = {
+						type: "picture-marker",  // autocasts as new PictureMarkerSymbol()
+						url: "http://images.clipartpanda.com/google-location-icon-location_black.png",
+						width: "18px",
+						height: "18px"
+					};
+					return graphic;
+				});
+				resultsLayer.addMany(features);
+			}
 
       /******************************************************************
        *
