@@ -109,7 +109,7 @@
 	<div class="calcite-panels calcite-panels-right calcite-text-light calcite-bg-dark panel-group">
 
 		<!-- Panel Query Form -->
-		<div id="panelForm" class="panel panel-map collapse in">
+		<div id="panelForm" class="panel panel-map collapse">
 			<div id="headingSettings" class="panel-heading">
 				<div class="panel-title">
 					<a class="panel-toggle" role="button" data-toggle="collapse" href="#collapseForm" data-parent="#panelAccordion" aria-expanded="true" aria-controls="collapseForm">
@@ -121,7 +121,7 @@
 					</a>
 				</div>
 			</div>
-			<div id="collapseForm" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingForm">
+			<div id="collapseForm" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingForm">
 				<div class="panel-body" style="width: 500px;">
 					<div class="form-horizontal">
 			  
@@ -149,6 +149,15 @@
 								<input type="checkbox" name="stationProperties" value="wifi" id="stationProperties1"><span style="padding-left:10px;">Wifi Available</span></br>
 								<input type="checkbox" name="stationProperties" value="barrier" id="stationProperties2"><span style="padding-left:10px;">Barrier-free</span></br>
 								<span>(If none selected, all stations are used for query)</span>
+							</div>
+						</div>
+						
+						<!-- Results Amount -->
+						<div class="form-group">
+							<label for="formResultsAmount" class="col-xs-3 control-label">Number of Results</label>
+							<div class="col-xs-9" style="padding-top: 6px;">
+								<input type="range" min="1" max="20" value="5" class="slider" id="resultsAmount" style="width: 280px;">
+								<span id="resultsAmountValue" style="padding-left:10px;">Top 5</span>
 							</div>
 						</div>
 						
@@ -231,7 +240,7 @@
 	<script src="https://js.arcgis.com/4.5/"></script>
 
 	<script>
-		var app;
+		var app, legend;
 
 		require([
 			"esri/Map",
@@ -244,6 +253,7 @@
 			"esri/Graphic",
 			"esri/widgets/Search",
 			"esri/widgets/Popup",
+			"esri/widgets/Legend",
 			"esri/core/watchUtils",
 			"dojo/query",
 			"dojo/on",
@@ -260,8 +270,8 @@
 			"dojo/domReady!"
 		], 
 	
-		function(Map, esriConfig, MapView, FeatureLayer, GraphicsLayer, WMTSLayer, geometryEngine, Graphic, 
-			Search, Popup, watchUtils, query, on, dom, domConstruct) {
+		function(Map, esriConfig, MapView, FeatureLayer, GraphicsLayer, WMTSLayer, geometryEngine, Graphic,
+			Search, Popup, Legend, watchUtils, query, on, dom, domConstruct) {
 
 			/******************************************************************
 			*
@@ -271,13 +281,13 @@
 
 			app = {
 				center: [16.438472, 48.214285],
-				scale: 125000,
+				scale: 100000,
 				basemap: "bmapgrau",
 				viewPadding: {
 					top: 50,
 					bottom: 0
 				},
-				uiComponents: ["zoom", "compass"],
+				uiComponents: ["zoom", "compass", "attribution"],
 				dockOptions: {
 					position: "auto",
 					// Custom docking breakpoints
@@ -300,36 +310,120 @@
 	   
 			// FeatureLayer hosting URL
 			featureLayerURL = "https://services8.arcgis.com/2Urly7krb67hfb0I/arcgis/rest/services/superproject_neu/FeatureServer/"
-	  
-			var stationPopupTemplate = { // autocasts as new PopupTemplate()
-				title: "Station: {HTXT}",
-				content: "<p>Properties:</p>" +
-					"<ul><li>Wifi Availability: {WIFI}</li>" +
-					"<li>Barrier-free: {ELEVATOR}</li></ul>"
-			};
-	  
-			var heroldPopupTemplate = { // autocasts as new PopupTemplate()
-				title: "Company: {COMPANY}",
-				content: "<p>Properties:</p>" +
-					"<ul><li>Industry Group: {INDUSTR_01}</li>" +
-					"<li>Turnover: {TURNOVER} &euro;</li>" +
-					"<li>Employees: {EMPLOYEES}</li>" +
-					"<li>Address: {STREET}, {ZIP} {CITY}</li>" +
-					"<li>URL: {HTTP}</li></ul>"
-			};
+			
+			// Isochrone Layer to show the user
+			var isoLayer = new FeatureLayer({
+				url: featureLayerURL + "4",
+				outFields: ["*"],
+				visible: false
+			});
+			
+			// Isochrone Layer to show the user
+			var simpleIsoLayer = new FeatureLayer({
+				url: featureLayerURL + "0",
+				outFields: ["*"],
+				visible: false
+			});
 	  
 			// Metro stations of Wiener Linien
 			var stationLayer = new FeatureLayer({
 				url: featureLayerURL + "1",
 				outFields: ["*"],
-				popupTemplate: stationPopupTemplate
+				renderer: {
+					type: "simple", // autocasts as new SimpleRenderer()
+					symbol: {
+						type: "simple-marker",
+						color: "black",
+						style: "x",
+						size: "10px",
+						outline: {
+							width: "5px",
+							color: "black"
+						}
+					}
+				},
+				popupTemplate: { // autocasts as new PopupTemplate()
+					title: "Station: {HTXT}",
+					content: createContents
+				}
 			});
+			
+			var content = "";
+			
+			function queryBranchmix(station_id) {
+				var query = isoLayer.createQuery();
+				query.where = "Stations_id = " + station_id + " AND Stations_costs = " + isosize[rangeSlider.value];
+				
+				return isoLayer.queryFeatures(query);
+			}
+			
+			function createContents(target) {
+					
+				// execute the query task
+				return queryBranchmix(target.graphic.attributes.Station_ID).then(function(results) {
+					var features = results.features;
+					var table_val = features.map(function(feature) {
+						return [feature.attributes.Herold_intersect_ISO2_Statis1_1, feature.attributes.Herold_intersect_ISO2_Statis1_3];
+					});
+					table_val.sort(compareSecondColumn);
+
+					function compareSecondColumn(a, b) {
+						if (a[1] === b[1]) {
+							return 0;
+						}
+						else {
+							return (a[1] > b[1]) ? -1 : 1;
+						}
+					}
+					
+					IG_table = "<table>" + 
+							"<tr><th><b>Industry Group</b></th>" + 
+							"<th><b>Frequency</b></th></tr>";
+							
+					for (i = 0; i < 5; i++) {
+						IG_table = IG_table + 
+							"<tr><td>" + table_val[i][0] + "</td>" + 
+							"<td>" + table_val[i][1] + "</td></tr>";
+					}
+					
+					IG_table = IG_table + "</table>";
+					
+					return "<p><b>Properties:</b></p>" +
+					"<ul><li>Wifi Availability: {WIFI}</li>" +
+					"<li>Barrier-free: {ELEVATOR}</li></ul>" + 
+					"<p><b>Top 5 Industry Groups</b> (within currently defined walking distance):</p>" + IG_table;
+				});
+			}
 	  
 			// Metro network of Wiener Linien
 			var networkLayer = new FeatureLayer({
 				url: featureLayerURL + "3"
 			});
 	  
+			var heroldPopupTemplate = { // autocasts as new PopupTemplate()
+				title: "Company: {COMPANY}",
+				content: [{
+					type: "fields",
+					fieldInfos: [{
+						fieldName: "TURNOVER",
+						format: {
+							places: 0,
+							digitSeparator: true
+						}
+					}, {
+						fieldName: "EMPLOYEES"
+					}, {
+						fieldName: "STREET"
+					}, {
+						fieldName: "ZIP",
+					}, {
+						fieldName: "CITY"
+					}, {
+						fieldName: "HTTP"
+					}]
+				}],
+			};
+			
 			// Business in Vienna
 			var heroldLayer = new FeatureLayer({
 				url: featureLayerURL + "2",
@@ -337,30 +431,31 @@
 				popupTemplate: heroldPopupTemplate,
 				visible: false
 			});
-	  
-			// Isochrone Layer to show the user
-			var isoLayer = new FeatureLayer({
-				url: featureLayerURL + "4",
-				outFields: ["*"],
-				visible: false
-			});
-	  
-			esriConfig.request.corsEnabledServers.push("https://www.basemap.at");
-			basemapLayer = new WMTSLayer({
-				url: "https://www.basemap.at/wmts/1.0.0/WMTSCapabilities.xml",
-				copyright: "<a target='_top' href='https://earthdata.nasa.gov'>Earthdata</a> by <a target='_top' href='https://www.nasa.gov'>NASA</a>",
-				activeLayer: {
-					id: app.basemap,
-				},
-			});
+			
+			basemapLayer = getBasemap(app.basemap);
+			basemapLayerID = basemapLayer.id;
+			
+			function getBasemap(basemap) {
+				esriConfig.request.corsEnabledServers.push("https://www.basemap.at");
+				layer = new WMTSLayer({
+					url: "https://www.basemap.at/wmts/1.0.0/WMTSCapabilities.xml",
+					copyright: "&copy; <a target='_top' href='https://www.basemap.at'>Basemap</a>, <a target='_top' href='https://creativecommons.org/licenses/by/3.0/at/deed.de'>Stadt Wien</a>, HEROLD Business Data AG and WIGeoGIS GmbH",
+					activeLayer: {
+						id: basemap,
+					},
+				});
+			
+			return layer;
+			}
 	  
 			// GraphicsLayer for displaying results
 			var resultsLayer = new GraphicsLayer();
+			var zoomLayer = new GraphicsLayer();
 			var stationsResultLayerID = '';
 
 			// Create Map
 			var map = new Map({
-				layers: [basemapLayer, networkLayer, stationLayer, heroldLayer, isoLayer, resultsLayer]
+				layers: [basemapLayer, networkLayer, stationLayer, heroldLayer, simpleIsoLayer, isoLayer, zoomLayer, resultsLayer]
 			});
 	  
 			// Create mapView
@@ -434,6 +529,13 @@
 					industryGroupSelect.add(option);
 				});
 			}
+			
+			app.mapView.then(function() {
+				query("#panelForm").collapse("show");
+				query("#collapseForm").collapse("show");
+			});
+			
+			
 		
 			/******************************************************************
 			*
@@ -445,12 +547,46 @@
 			var barrierPropertyCheck = dom.byId("stationProperties2");
 			var rangeSlider = dom.byId("queryRange");
 			var isosize = [3, 5, 7, 10];
+			var amountSlider = dom.byId("resultsAmount");
+			
+			app.mapView
+				.then(queryIsochrones)
+				.then(showIsochrones);
+				
+			on(amountSlider, "input", function() {
+				// display selected range
+				dom.byId("resultsAmountValue").innerText = "Top " + amountSlider.value;
+			});
 			
 			// display the range and isochrone selected by the user
 			on(rangeSlider, "input", function() {
 				// display selected range
 				dom.byId("queryRangeValue").innerText = isosize[rangeSlider.value] + " min";
+				queryIsochrones()
+					.then(showIsochrones);
 			});
+			
+			function queryIsochrones() {
+				var query = simpleIsoLayer.createQuery();
+				query.where = "costs = " + isosize[rangeSlider.value];
+				
+				return simpleIsoLayer.queryFeatures(query);
+			}
+			
+			function showIsochrones(results) {
+				resultsLayer.removeAll();
+				if (stationsResultLayerID != "") {
+					var old_lyr = map.findLayerById(stationsResultLayerID);
+					map.remove(old_lyr);
+					query("#panelReport").collapse("hide");
+					query("#collapseReport").collapse("hide");
+				}
+				var features = results.features.map(function(graphic) {
+					graphic.symbol = defaultSym;
+					return graphic;
+				});
+				resultsLayer.addMany(features);
+			}
 			
 			on(dom.byId("startSearch"), "click", function() {		
 				// Filter isochrones
@@ -540,6 +676,7 @@
 			
 			function createLayer(results) {
 				resultsLayer.removeAll();
+				zoomLayer.removeAll();
 				if (stationsResultLayerID != '') {
 					var old_lyr = map.findLayerById(stationsResultLayerID);
 					map.remove(old_lyr);
@@ -565,7 +702,7 @@
 							stops: [
 							{
 								value: min_freq,
-								color: [189, 253, 157, 0.9],
+								color: [189, 253, 157, 0.5],
 								label: min_freq
 							},
 							{
@@ -581,14 +718,34 @@
 				stationsResultLayerID = lyr.id;
 				map.reorder(lyr, 1);
 				
+				if (legend) {
+					legend.layerInfos = [{
+						layer: lyr,
+						title: "Map Query Results"
+					}];
+				} else {
+					legend = new Legend({
+						view: app.activeView,
+						layerInfos: [
+						{
+						  layer: lyr,
+						  title: "Map Query Results"
+						}]
+					});
+				}
+
+				// Add widget to the bottom right corner of the view
+				app.activeView.ui.add(legend, "bottom-left");
+				
 				return results;
 			}
 			
 			function createReport(results) {
 				var features = results.features;
 				var table_val = features.map(function(feature) {
-					return [feature.attributes.Stations_HTXT, feature.attributes.Herold_intersect_ISO2_Statis1_3];
+					return [feature.attributes.Stations_HTXT, feature.attributes.Herold_intersect_ISO2_Statis1_3, feature.attributes.OBJECTID];
 				});
+				
 				table_val.sort(compareSecondColumn);
 
 				function compareSecondColumn(a, b) {
@@ -621,7 +778,7 @@
 				}
 				
 				// For max top 10 results insert rows and values
-				amount_res = Math.min(table_val.length, 5);
+				amount_res = Math.min(table_val.length, amountSlider.value);
 				for (i = 0; i < amount_res; i++) { 
 					var row = table.insertRow(i+1);
 					for (j = 0; j < 3; j++) {
@@ -629,6 +786,9 @@
 						if (j == 0){
 							rowcol.setAttribute("style", "padding:5px; text-align:center");
 							rowcol.innerHTML = i+1;
+						} else if (j == 1){
+							rowcol.setAttribute("style", "padding:5px");
+							rowcol.innerHTML = "<a id=" + table_val[i][j+1] + " style='cursor: pointer'>" + table_val[i][j-1] + "</a>";
 						} else {
 							rowcol.setAttribute("style", "padding:5px");
 							rowcol.innerHTML = table_val[i][j-1];
@@ -636,10 +796,17 @@
 					}
 				}
 				
+				var links = table.getElementsByTagName('a');
+				
+				for (var i = 0; i < links.length; i++) {
+					var link = links[i];
+					link.onclick = zoomStation;
+				}
+				
 				// Append table and results statement
 				div.append(table);
 				div.append(document.createElement('br'));
-				div.append(document.createElement('p').appendChild(document.createTextNode("(Top " + amount_res + " results)")));
+				div.append(document.createElement('p').appendChild(document.createTextNode("(Top " + amount_res + " results out of " + table_val.length + ")")));
 				
 				// Toggle report if not toggled
 				query("#panelReport").collapse("show");
@@ -647,6 +814,34 @@
 				
 				return results
 			}
+			
+			function zoomStation() {
+				iso_id = Number(this.id);
+				queryResults(iso_id)
+					.then(showResults);
+			}
+			
+			function queryResults(id) {
+				var query = isoLayer.createQuery();
+				query.where = "OBJECTID = " + id;
+				
+				return isoLayer.queryFeatures(query);
+			}
+			
+			function showResults(results) {
+				zoomLayer.removeAll();
+				feature = results.features[0];
+				feature.symbol = {
+					type: "simple-fill", // autocasts as new SimpleFillSymbol()
+					color: [0, 0, 0, 0],
+					outline: { // autocasts as new SimpleLineSymbol()
+						color: [219, 51, 51],
+						width: 3
+					}
+				}
+				app.activeView.goTo(feature.geometry.extent.expand(5));
+				zoomLayer.add(feature);
+			} 
 			
 			function queryHerold(results) {	
 				var features = results.features;
@@ -794,11 +989,13 @@
 
       // Basemap events
       query("#selectBasemapPanel").on("change", function(e) {
-        //app.mapView.map.basemap = e.target.options[e.target.selectedIndex]
-          //.dataset.vector;
-		//basemapLayer.activeLayer = {id: e.target.options[e.target.selectedIndex]
-          //.dataset.vector,}
-		alert(e.target.options[e.target.selectedIndex].dataset.vector);
+		var basemap = e.target.options[e.target.selectedIndex].dataset.vector;
+		old_layer = map.findLayerById(basemapLayerID);
+		map.remove(old_layer);
+		new_layer = getBasemap(basemap);
+		map.add(new_layer);
+		map.reorder(new_layer, 0);
+		basemapLayerID = new_layer.id;
       });
 
     });
