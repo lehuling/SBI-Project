@@ -44,14 +44,14 @@
 			appearance: none;
 			width: 15px; /* Set a specific slider handle width */
 			height: 25px; /* Slider handle height */
-			background: #db3333; /* Green background */
+			background: #db3333; /* Red background */
 			cursor: pointer; /* Cursor on hover */
 		}
 
 		.slider::-moz-range-thumb {
 			width: 15px; /* Set a specific slider handle width */
 			height: 25px; /* Slider handle height */
-			background: #db3333; /* Green background */
+			background: #db3333; /* Red background */
 			cursor: pointer; /* Cursor on hover */
 		}
 	</style>
@@ -243,8 +243,9 @@
 	<script src="https://js.arcgis.com/4.5/"></script>
 
 	<script>
-		var app, legend;
-
+		var app;
+		
+		// Add needed Esri JS API packages
 		require([
 			"esri/Map",
 			"esri/config",
@@ -272,7 +273,7 @@
 			"calcite-maps/calcitemaps-v0.2",
 			"dojo/domReady!"
 		], 
-	
+		
 		function(Map, esriConfig, MapView, FeatureLayer, GraphicsLayer, WMTSLayer, geometryEngine, Graphic,
 			Search, Popup, Legend, watchUtils, query, on, dom, domConstruct) {
 
@@ -281,7 +282,8 @@
 			* App settings
 			* 
 			******************************************************************/
-
+			
+			// Define global application view parameters
 			app = {
 				center: [16.438472, 48.214285],
 				scale: 100000,
@@ -302,9 +304,10 @@
 				mapView: null,
 				activeView: null,
 				searchWidget: null,
+				legendWidget: null,
 				screenWidth: 0
 			};
-			
+						
 			/******************************************************************
 			*
 			* Load Layers and popups
@@ -314,21 +317,21 @@
 			// FeatureLayer hosting URL
 			featureLayerURL = "https://services8.arcgis.com/2Urly7krb67hfb0I/arcgis/rest/services/superproject_neu/FeatureServer/"
 			
-			// Isochrone Layer to show the user
+			// Isochrone Layer to query user search
 			var isoLayer = new FeatureLayer({
 				url: featureLayerURL + "4",
 				outFields: ["*"],
 				visible: false
 			});
 			
-			// Isochrone Layer to show the user
+			// Isochrone Layer to dynamically show the user selected isochrone range
 			var simpleIsoLayer = new FeatureLayer({
 				url: featureLayerURL + "0",
 				outFields: ["*"],
 				visible: false
 			});
 	  
-			// Metro stations of Wiener Linien
+			// Metro stations of Wiener Linien including custom renderer and popupTemplate with a function
 			var stationLayer = new FeatureLayer({
 				url: featureLayerURL + "1",
 				outFields: ["*"],
@@ -356,7 +359,7 @@
 				url: featureLayerURL + "3"
 			});
 	  
-			// Business in Vienna
+			// Businesses in Vienna including definition of a popupTemplate
 			var heroldLayer = new FeatureLayer({
 				url: featureLayerURL + "2",
 				outFields: ["*"],
@@ -390,7 +393,8 @@
 			// Define function to call selected basemap
 			function getBasemap(basemap) {
 				esriConfig.request.corsEnabledServers.push("https://www.basemap.at");
-				layer = new WMTSLayer({
+				// Load vienna basemap into a WMTSLayer and return
+				return layer = new WMTSLayer({
 					url: "https://www.basemap.at/wmts/1.0.0/WMTSCapabilities.xml",
 					copyright: "&copy; <a target='_top' href='https://www.basemap.at'>Basemap</a>, " +
 						"<a target='_top' href='https://creativecommons.org/licenses/by/3.0/at/deed.de'>Stadt Wien</a>, " + 
@@ -399,21 +403,19 @@
 						id: basemap,
 					},
 				});
-			
-			return layer;
 			}
 			
-			// BasemapLayer and ID for function
+			// Define basemapLayer and layer ID for removing current basemap on UI event
 			basemapLayer = getBasemap(app.basemap);
 			basemapLayerID = basemapLayer.id;
 	  
-			// GraphicsLayer for displaying results
+			// Define GraphicsLayers for displaying result herold businesses and zooming outlines
 			var resultsLayer = new GraphicsLayer();
 			var zoomLayer = new GraphicsLayer();
 			
-			// ID for new FeatureLayer for displaying results
+			// Define empty ID for new FeatureLayer for displaying isochrone results of user query
 			var stationsResultLayerID = '';
-
+			
 			/******************************************************************
 			*
 			* Create the map view and ui components
@@ -441,20 +443,21 @@
 				}
 			});
 
-			// Set the active view to scene
+			// Set the active view 
 			app.activeView = app.mapView;
 
 			// Create the search widget and add it to the navbar instead of view
 			app.searchWidget = new Search({
 				view: app.activeView
 			}, "searchWidgetDiv");
-			
+						
 			/******************************************************************
 			*
 			* Define dynamic popup templates and function
 			* 
 			******************************************************************/
 			
+			// Define function to sort multidimensional query result arrays
 			function compareSecondColumn(a, b) {
 				if (a[1] === b[1]) {
 					return 0;
@@ -464,16 +467,25 @@
 				}
 			}
 			
+			// Define popup function that is called when a popup is opened and accepts selected popup entity.
+			// Function queries isoLayer for branchmix and returns results to be displayed in popup
+			// Output:
+			// HTML formatted contents to be included in the called popup
 			function createContents(target) {
+				// Define query and creation of HTML formatted results in a queued fashion 
+				// to ensure returned results from query Promise.
 				return queryBranchmix(target.graphic.attributes.Station_ID).then(function(results) {
-				
+					
+					// Get needed results from query in a multidimensional array
 					var features = results.features;
 					var table_val = features.map(function(feature) {
 						return [feature.attributes.Herold_intersect_ISO2_Statis1_1, 
 							feature.attributes.Herold_intersect_ISO2_Statis1_3];
 					});
-					
+					// Sort query results
 					table_val.sort(compareSecondColumn);
+					
+					// Define HTML table to display query results in popup
 					IG_table = "<table><tr><th><b>Industry Group</b></th>" + 
 							"<th><b>Frequency</b></th></tr>";
 					for (i = 0; i < 5; i++) {
@@ -483,6 +495,7 @@
 					}
 					IG_table = IG_table + "</table>";
 					
+					// Return HTML string
 					return "<p><b>Properties:</b></p>" +
 						"<ul><li>Wifi Availability: {WIFI}</li>" +
 						"<li>Barrier-free: {ELEVATOR}</li></ul>" + 
@@ -491,14 +504,20 @@
 				});
 			}
 			
+			// Define query to search isochrones for branchmix of station for which the popup is created.
+			// Output: 
+			// The results of the query are returned to the function 
+			// defining HTML string of popup containing query results.
 			function queryBranchmix(station_id) {
 				var query = isoLayer.createQuery();
+				// Define query according to given parameters.
 				query.where = "Stations_id = " + station_id + 
 					" AND Stations_costs = " + isosize[rangeSlider.value];
 				
+				// Return query results
 				return isoLayer.queryFeatures(query);
 			}
-	  
+				  
 			/******************************************************************
 			*
 			* Wire onload UI events
@@ -506,53 +525,52 @@
 			******************************************************************/
 		
 			var industryGroupSelect = dom.byId("selectIndustryGroup");
-		
+			
+			// Define queued functions for onload event of mapView including toggling 
+			// query form panel, displaying available industry groups in query form dropdown
+			// and loading initial dynamic isochrones selected by range slider.
 			app.mapView.then(function() {
+				// Toggle query form panel
 				query("#panelForm").collapse("show");
 				query("#collapseForm").collapse("show");
 				
+				// Return all data in heroldLayer
 				return heroldLayer.then(function() {
+					// Define empty query
 					var query = heroldLayer.createQuery();
 					
+					// Return query results
 					return heroldLayer.queryFeatures(query);
 				});
 			})
-				.then(getValues)
 				.then(getUniqueValues)
-				.then(addToSelect)
 				.then(queryIsochrones)
 				.then(showIsochrones);
 		  
-			function getValues(response) {
+			// From query results of previous function get all values in the industry group column,
+			// search for unique values, sort them and add them to dropdown in query form.
+			function getUniqueValues(response) {
+				// Get all industry groups in column INDUSTR_01 
 				var features = response.features;
 				var values = features.map(function(feature) {
 					return feature.attributes.INDUSTR_01;
 				});
-				
-				return values;
-			}
-		  
-			function getUniqueValues(values) {
+				// Filter out unique values and sort them
 				var uniqueValues = [];
-			
 				values.forEach(function(item, i) {
 					if ((uniqueValues.length < 1 || uniqueValues.indexOf(item) === -1) && (item !== "")) {
 						uniqueValues.push(item);
 					}
 				});
-				
-				return uniqueValues;
-			}
-		  
-			function addToSelect(values) {
-				values.sort();
-				values.forEach(function(value) {
+				uniqueValues.sort();
+				// Add each unique value to the dropdown in the query form
+				uniqueValues.forEach(function(value) {
 					var option = domConstruct.create("option");
 					option.text = value;
 					industryGroupSelect.add(option);
 				});
 			}
-		
+					
 			/******************************************************************
 			*
 			* Wire query range slider UI events
@@ -563,34 +581,50 @@
 			var amountSlider = dom.byId("resultsAmount");
 			var isosize = [3, 5, 7, 10];
 				
+			// Define change of number of results label in query form on change of the slider
 			on(amountSlider, "input", function() {
 				// display selected range
 				dom.byId("resultsAmountValue").innerText = "Top " + amountSlider.value;
 			});
 			
-			// display the range and isochrone selected by the user
+			// Define change of isochrone label in query form on change of the slider and
+			// load currently selected isochrones in GraphicsLayer
 			on(rangeSlider, "input", function() {
 				// display selected range
 				dom.byId("queryRangeValue").innerText = isosize[rangeSlider.value] + " min";
+				// query isochrones and show in GraphicsLayer
 				queryIsochrones()
 					.then(showIsochrones);
 			});
 			
+			// Define query to search isochrones for selected costs on range slider.
+			// Output: 
+			// The results of the query are passed to the function 
+			// displaying the results in a GraphicsLayer.
 			function queryIsochrones() {
 				var query = simpleIsoLayer.createQuery();
+				// Define query according to given parameters.
 				query.where = "costs = " + isosize[rangeSlider.value];
 				
+				// Return query results
 				return simpleIsoLayer.queryFeatures(query);
 			}
 			
+			// Using the results from the previous query the selected isochrones are formatted and 
+			// added to a GraphicsLayer.
 			function showIsochrones(results) {
+				// Remove all results from previous query including businesses in resultsLayer, 
+				// zoom graphics in the zoomLayer and the FeatureLayer containing previous station results.
 				resultsLayer.removeAll();
+				zoomLayer.removeAll();
 				if (stationsResultLayerID != "") {
 					var old_lyr = map.findLayerById(stationsResultLayerID);
 					map.remove(old_lyr);
+					// Hide report from previous user search
 					query("#panelReport").collapse("hide");
 					query("#collapseReport").collapse("hide");
 				}
+				// Format query results 
 				var features = results.features.map(function(graphic) {
 					graphic.symbol = {
 						type: "simple-fill", // autocasts as new SimpleFillSymbol()
@@ -601,6 +635,7 @@
 					};
 					return graphic;
 				});
+				// Display query results in map using resultsLayer
 				resultsLayer.addMany(features);
 			}
 			
@@ -610,11 +645,12 @@
 			* 
 			******************************************************************/
 			
-			var wifiPropertyCheck = dom.byId("stationProperties1");
-			var barrierPropertyCheck = dom.byId("stationProperties2");
-			
+			// Define queued functions for onclick event of the search button.
+			// After querying all isochrones according to the user input,
+			// the output is formatted as a new FeatureLayer and a report.
+			// For further usability the relevant businesses in the result isochrones are 
+			// displayed as well in a temporal GraphicsLayer.
 			on(dom.byId("startSearch"), "click", function() {		
-				// Filter isochrones
 				queryStations()
 					.then(createLayer)
 					.then(createReport)
@@ -622,44 +658,76 @@
 					.then(displayHerold);
 			});
 			
+			// Define query to search isochrones according to user input 
+			// and search isoLayer using defined query.
+			// Output: 
+			// The results of the query are returned to the next function 
+			// defined in the onclick event of the search button.
 			function queryStations() {
 				var query = isoLayer.createQuery();
-				var wifi = wifiPropertyCheck.checked;
-				var barrier = barrierPropertyCheck.checked;
-				var where_costs = "Stations_costs = " + isosize[rangeSlider.value];
-				var where_IG = "Herold_intersect_ISO2_Statis1_1 = '" + industryGroupSelect.value + "'";
-				var where_wifi = "Stations_WIFI = 'YES'";
-				var where_barrier = "Stations_ELEVATOR = 'YES'";
+				var wifi = dom.byId("stationProperties1").checked;
+				var barrier = dom.byId("stationProperties2").checked;
 				
+				// Depending on the wifi and barrier parameters selected by the user, 
+				// the query needs to be defined as a string of where conditions connected by an AND operator.
 				if (wifi && barrier) {
-					query.where = where_costs + " AND " + where_IG + " AND " + where_wifi + " AND " + where_barrier;
+					query.where = "Stations_costs = " + isosize[rangeSlider.value] + 
+						" AND " + 
+						"Herold_intersect_ISO2_Statis1_1 = '" + industryGroupSelect.value + "'" + 
+						" AND " + 
+						"Stations_WIFI = 'YES'" + 
+						" AND " + 
+						"Stations_ELEVATOR = 'YES'";
 				} else if (wifi) {
-					query.where = where_costs + " AND " + where_IG + " AND " + where_wifi;
+					query.where = "Stations_costs = " + isosize[rangeSlider.value] + 
+						" AND " + 
+						"Herold_intersect_ISO2_Statis1_1 = '" + industryGroupSelect.value + "'" + 
+						" AND " + 
+						"Stations_WIFI = 'YES'";
 				} else if (barrier) {
-					query.where = where_costs + " AND " + where_IG + " AND " + where_barrier;
+					query.where = "Stations_costs = " + isosize[rangeSlider.value] + 
+						" AND " + 
+						"Herold_intersect_ISO2_Statis1_1 = '" + industryGroupSelect.value + "'" + 
+						" AND " + 
+						"Stations_ELEVATOR = 'YES'";
 				} else {
-					query.where = where_costs + " AND " + where_IG;
+					query.where = "Stations_costs = " + isosize[rangeSlider.value] + 
+						" AND " + 
+						"Herold_intersect_ISO2_Statis1_1 = '" + industryGroupSelect.value + "'";
 				}
 				
+				// Return query results
 				return isoLayer.queryFeatures(query);
 			}
 			
+			// Using the results from the query a new FeatureLayer is created and rendered 
+			// after removing the FeatureLayer containing the results of the previous query if it exists. 
+			// Output: 
+			// The results of the previous query are passed along to the next function 
+			// defined in the onclick event of the search button.
 			function createLayer(results) {
+				// Remove all results from previous query including businesses in resultsLayer, 
+				// zoom graphics in the zoomLayer and the FeatureLayer containing previous station results.
 				resultsLayer.removeAll();
 				zoomLayer.removeAll();
 				if (stationsResultLayerID != '') {
 					var old_lyr = map.findLayerById(stationsResultLayerID);
 					map.remove(old_lyr);
 				}
+				
+				// Get the maximum and minimum frequency values of the results for the legend.
 				var features = results.features;
 				var freq = features.map(function(feature) {
 					return feature.attributes.Herold_intersect_ISO2_Statis1_3;
 				});
 				var max_freq = Math.max.apply(null, freq);
 				var min_freq = Math.min.apply(null, freq);
+				
+				// Define new FeatureLayer containing query results with predefined fields and a renderer.
 				var lyr = new FeatureLayer({
-					source: features, // autocast as an array of esri/Graphic
+					source: features,
 					// create an instance of esri/layers/support/Field for each field object
+					// This is required when creating a layer from Graphics
 					fields: [
 						{
 							name: "OBJECTID",
@@ -705,13 +773,15 @@
 							name: "Shape__Length",
 							alias: "Shape__Length",
 							type: "double"
-					}], // This is required when creating a layer from Graphics
-					objectIdField: "ObjectID", // This must be defined when creating a layer from Graphics
+					}], 
+					// This must be defined when creating a layer from Graphics
+					objectIdField: "ObjectID", 
+					// set the visualization on the layer
 					renderer: {
-						type: "simple", // autocasts as new SimpleRenderer()
+						type: "simple", 
 						symbol: {
-							type: "simple-fill", // autocasts as new SimpleFillSymbol()
-							outline: { // autocasts as new SimpleLineSymbol()
+							type: "simple-fill", 
+							outline: { 
 								color: "lightgray",
 								width: 0.5
 							}
@@ -732,43 +802,54 @@
 								label: max_freq
 							}]
 						}]
-					}, // set the visualization on the layer
-					geometryType: "polygon", // Must be set when creating a layer from Graphics
+					}, 
+					// Must be set when creating a layer from Graphics
+					geometryType: "polygon", 
 				});
-				map.add(lyr);
-				stationsResultLayerID = lyr.id;
-				map.reorder(lyr, 1);
 				
-				if (legend) {
-					legend.layerInfos = [{
+				// Add the new FeatureLayer to the map at a specific index
+				map.add(lyr, 1);
+				// Store the new layer ID in a global variable to remove layer when query is re-run.
+				stationsResultLayerID = lyr.id;
+				
+				// Add new legend to the view if none has been defined yet, otherwise update the existing legend.
+				if (app.legendWidget) {
+					app.legendWidget.layerInfos = [{
 						layer: lyr,
 						title: "Map Query Results"
 					}];
 				} else {
-					legend = new Legend({
+					app.legendWidget = new Legend({
 						view: app.activeView,
 						layerInfos: [
 						{
-						  layer: lyr,
-						  title: "Map Query Results"
+							layer: lyr,
+							title: "Map Query Results"
 						}]
 					});
 				}
 
-				// Add widget to the bottom right corner of the view
-				app.activeView.ui.add(legend, "bottom-left");
+				// Add legend widget to the bottom right corner of the view.
+				app.activeView.ui.add(app.legendWidget, "bottom-left");
 				
+				// Pass on query results of previous query function to next function.
 				return results;
 			}
 			
+			// Using the results from the query the query report is created and added to a predefined HTML panel
+			// that is shown afterwards. 
+			// Output: 
+			// The results of the previous query are passed along to the next function 
+			// defined in the onclick event of the search button.
 			function createReport(results) {
+				// Access the station name, ID and the frequency of the selected industry group from the results.
 				var features = results.features;
 				var table_val = features.map(function(feature) {
 					return [feature.attributes.Stations_HTXT, 
 							feature.attributes.Herold_intersect_ISO2_Statis1_3, 
 							feature.attributes.OBJECTID];
 				});
-				
+				// Sort results by using previously defined function compareSecondColumn.
 				table_val.sort(compareSecondColumn);
 				
 				// Access table and div
@@ -792,7 +873,7 @@
 					headcol.innerHTML = headings[i][0];
 				}
 				
-				// For max top 10 results insert rows and values
+				// For number of top results selected by the user insert rows and values
 				amount_res = Math.min(table_val.length, amountSlider.value);
 				for (i = 0; i < amount_res; i++) { 
 					var row = table.insertRow(i+1);
@@ -812,8 +893,8 @@
 					}
 				}
 				
+				// Access all station names defined as links and add a dynamic onclick function to each
 				var links = table.getElementsByTagName('a');
-				
 				for (var i = 0; i < links.length; i++) {
 					var link = links[i];
 					link.onclick = zoomStation;
@@ -828,47 +909,28 @@
 				// Toggle report if not toggled
 				query("#panelReport").collapse("show");
 				query("#collapseReport").collapse("show");
+				// In mobile view additionally hide the query panel for better overview.
 				if (app.activeView.widthBreakpoint === "xsmall") {
 					query("#panelForm").collapse("hide");
 					query("#collapseForm").collapse("hide");
 				}
 				
+				// Pass on query results of previous query function to next function.
 				return results
 			}
 			
-			function zoomStation() {
-				iso_id = Number(this.id);
-				queryResults(iso_id)
-					.then(showResults);
-			}
-			
-			function queryResults(id) {
-				var query = isoLayer.createQuery();
-				query.where = "OBJECTID = " + id;
-				
-				return isoLayer.queryFeatures(query);
-			}
-			
-			function showResults(results) {
-				zoomLayer.removeAll();
-				feature = results.features[0];
-				feature.symbol = {
-					type: "simple-fill", // autocasts as new SimpleFillSymbol()
-					color: [0, 0, 0, 0],
-					outline: { // autocasts as new SimpleLineSymbol()
-						color: [219, 51, 51],
-						width: 3
-					}
-				}
-				app.activeView.goTo(feature.geometry.extent.expand(5));
-				zoomLayer.add(feature);
-			} 
-			
+			// Define query to search businesses according to the IDs of the resulting isochrones 
+			// from the previous search query and search heroldLayer using defined query.
+			// Output: 
+			// The results of the query are returned to the next function 
+			// defined in the onclick event of the station link.
 			function queryHerold(results) {	
+				// Get isochrone IDs from previous results
 				var features = results.features;
 				var gids = features.map(function(feature) {
 					return feature.attributes.Herold_intersect_ISO2_Statis1_2;
 				});
+				// Define where clause of the query to find relevant herold businesses.
 				SQL = "";
 				gids.forEach(addSQL);
 				function addSQL(item, index) {
@@ -879,14 +941,18 @@
 					}
 				}
 				
+				// Define query
 				var query = heroldLayer.createQuery();
 				query.where = SQL + ") AND INDUSTR_01 = '" + industryGroupSelect.value + "'";
 				
+				// Return query results to next function
 				return heroldLayer.queryFeatures(query);
 			}
 			
+			// Using the results from the previous query the relevant herold businesses are formatted and 
+			// added to a GraphicsLayer.
 			function displayHerold(results) {
-				// display relevant businesses in map
+				// Format query results 
 				var features = results.features.map(function(graphic) {
 					graphic.symbol = {
 						type: "picture-marker",  // autocasts as new PictureMarkerSymbol()
@@ -896,27 +962,68 @@
 					};
 					return graphic;
 				});
+				// Display query results in map using resultsLayer
 				resultsLayer.addMany(features);
 			}
+			
+			/******************************************************************
+			*
+			* Wire and define UI event of dynamically created station links in query report
+			* 
+			******************************************************************/
+			
+			// Define the actions after the onlick event of a station link in the report
+			// by getting station link ID (defined as the OBJECTID in the data set), finding the 
+			// respective geometry through a query and zooming there using the function goTo().
+			function zoomStation() {
+				iso_id = Number(this.id);
+				queryResults(iso_id)
+					.then(showResults);
+			}
+			
+			// Define query to search stations according to the ID of the stationlink
+			// and search isoLayer using defined query.
+			// Output: 
+			// The results of the query are returned to the next function 
+			// defined in the onclick event of the station link.
+			function queryResults(id) {
+				var query = isoLayer.createQuery();
+				// Define query according to given parameters.
+				query.where = "OBJECTID = " + id;
+				
+				// Return query results
+				return isoLayer.queryFeatures(query);
+			}
+			
+			// After removing the previous zoom outline, use results of previous query to 
+			// zoom activeView into result geometry.
+			// Output:
+			// Zoom into selected station isochrone and outline of it in zoomLayer.
+			function showResults(results) {
+				// Clean out previous zoom
+				zoomLayer.removeAll();
+				// Access result
+				feature = results.features[0];
+				// Define outline visualization
+				feature.symbol = {
+					type: "simple-fill", 
+					color: [0, 0, 0, 0],
+					outline: { 
+						color: [219, 51, 51],
+						width: 3
+					}
+				}
+				// Zoom into result geometry
+				app.activeView.goTo(feature.geometry.extent.expand(5));
+				// add visualization to zoomLayer
+				zoomLayer.add(feature);
+			} 
 
 			/******************************************************************
 			*
 			* Synchronize the view, search and popup
 			* 
 			******************************************************************/
-
-			// Tab - toggle between map and scene view
-			query(".calcite-navbar li a[data-toggle='tab']").on("click", function(e) {
-				syncTabs(e);
-				app.activeView = app.mapView;
-				syncSearch();
-			});
-
-			// Tabs - sync ui menus
-			function syncTabs(e) {
-				query(".calcite-navbar li.active").removeClass("active");
-				query(e.target).addClass("active");
-			}
 
 			// Search - sync search location and popup
 			function syncSearch() {
@@ -1002,14 +1109,17 @@
 			* 
 			******************************************************************/
 
-			// Basemap events
+			// Load new basemap as WMTS Layer and add into activeView after removing old basemap
 			query("#selectBasemapPanel").on("change", function(e) {
+				// Get selected basemap
 				var basemap = e.target.options[e.target.selectedIndex].dataset.vector;
+				// Remove old basemap
 				old_layer = map.findLayerById(basemapLayerID);
 				map.remove(old_layer);
+				// Load new basemap
 				new_layer = getBasemap(basemap);
-				map.add(new_layer);
-				map.reorder(new_layer, 0);
+				// Add new basemap to activeView and update global Layer ID for changing basemaps
+				map.add(new_layer, 0);
 				basemapLayerID = new_layer.id;
 			});
 
